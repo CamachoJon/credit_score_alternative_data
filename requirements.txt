@@ -1,0 +1,8 @@
+pandas
+matplotlib
+numpy
+scikit-learn
+xgboost
+lightgbm
+seaborn
+prettytable
