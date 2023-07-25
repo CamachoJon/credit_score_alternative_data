@@ -162,3 +162,4 @@ cython_debug/
 data/
 test/
 HomeCredit/
+.DS_Store
