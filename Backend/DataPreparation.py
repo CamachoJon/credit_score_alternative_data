@@ -1,26 +1,9 @@
 # import the necessary libraries at the top
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
-from sklearn.metrics import roc_curve, auc, roc_auc_score, classification_report
-from sklearn import metrics, svm
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Ridge
-from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, AdaBoostClassifier, GradientBoostingClassifier, VotingClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.decomposition import PCA
-from xgboost import XGBClassifier
-import xgboost as xgb
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy import stats
-from tabulate import tabulate
 import joblib
-import warnings
-
-warnings.filterwarnings('ignore')
-
 
 class DataPreparation:
 
