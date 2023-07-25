@@ -19,14 +19,20 @@ from DataPreparation import DataPreparation
 # define the app and the base URL
 app = FastAPI()
 
-@app.get('/user_data')
+@app.get('/user_data', response_model=List[Dict])
 async def get_user_data():
     db = Database()
     query = "SELECT * FROM [dbo].[USERS]"
     results = db.read(query)
-    results_json = results.to_json(orient='records')
+    
+    results.replace([np.inf, -np.inf], np.nan, inplace=True)
+    results.fillna(value="NaN", inplace=True)  # use a string to represent NaN
 
-    return results_json
+    results_dict = results.to_dict(orient='records')
+
+    # Use FastAPI's jsonable_encoder to convert our data into JSON compatible format
+    return jsonable_encoder(results_dict)
+
 
 # define the index
 @app.get("/")
