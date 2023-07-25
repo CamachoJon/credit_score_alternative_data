@@ -4,6 +4,9 @@ WORKDIR /usr/local/airflow
 # Copy project files into the docker image
 COPY requirements.txt ./
 COPY dags ./dags
+COPY NewClients ./NewClients
+COPY ProcessedClients ./ProcessedClients
+COPY WaitingList ./WaitingList
 
 # Copy supervisord.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf   

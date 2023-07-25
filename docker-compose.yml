@@ -20,5 +20,8 @@ services:
     build: ./airflow
     volumes:
       - ./airflow/dags:/root/airflow/dags
+      - ./airflow/NewClients:/usr/local/airflow/NewClients
+      - ./airflow/ProcessedClients:/usr/local/airflow/ProcessedClients
+      - ./airflow/WaitingList:/usr/local/airflow/WaitingList
     ports:
       - "8080:8080"
