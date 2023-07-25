@@ -4,6 +4,10 @@ import numpy as np
 import pandas as pd
 import plotly.figure_factory as ff
 import time
+import pandas as pd
+import json
+
+from services import user as user_service
 
 st.set_page_config(layout="wide")
 
@@ -15,7 +19,16 @@ with st.sidebar:
 
 with st.container():
     if selected == "Home":
+        user_data = user_service.get_all_user_data()
         st.title("User Profiling Reports")
+
+        # Convert JSON string to Python dictionary
+        data_dict = json.loads(user_data)
+
+        # Create a DataFrame from the dictionary
+        df = pd.DataFrame([data_dict])
+
+        st.dataframe(df.head(10))
         col1, col2 = st.columns(2)
 
         with col1:
