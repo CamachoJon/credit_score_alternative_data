@@ -1,8 +1,13 @@
-fastapi
-pydantic
+scikit-learn
 pandas
+numpy
+seaborn
+matplotlib
+scipy
+tabulate
 joblib
 python-dotenv
 pyodbc
+fastapi
 uvicorn
-scikit-learn
+xgboost
