@@ -6,30 +6,19 @@ from datetime import datetime, timedelta
 import os
 import shutil
 import pandas as pd
-import random
 
-FOLDER_A = '/usr/local/airflow/Folder_A'
-FOLDER_B = '/usr/local/airflow/Folder_B'
-FOLDER_C = '/usr/local/airflow/Folder_C'
+WAITING_LIST = '/usr/local/airflow/WaitingList'
+NEW_CLIENTS = '/usr/local/airflow/NewClients'
+PROCESSED_cLIENTS = '/usr/local/airflow/ProcessedClients'
 LOGS = '/usr/local/airflow/Logs/log.txt'
 
 def read_from_folder_a(**context):
     # Check if there are new files in the directory
-    source_data_files = os.listdir(FOLDER_A)
-    destiny = FOLDER_C
+    source_data_files = os.listdir(WAITING_LIST)
+    destiny = NEW_CLIENTS
     file = source_data_files[0]
-    test = random.randint(0,2)
-    
-    # Testing 0 Files with too many errors
-    if test == 0:
-        destiny = FOLDER_B
-        pass
-    # Testin 1 Files with just a few errors
-    elif test == 1:
-        # destiny = FOLDER_B
-        pass
 
-    shutil.move(os.path.join(FOLDER_A, file), os.path.join(destiny, file))    
+    shutil.move(os.path.join(WAITING_LIST, file), os.path.join(destiny, file))    
     save_in_log(file)
 
 def save_in_log(file):
@@ -53,6 +42,7 @@ dag = DAG(
     default_args=default_args,
     description='DAG for data ingestion',
     schedule_interval='*/1 * * * *',
+    catchup=False
 )
 
 t1 = PythonOperator(
@@ -60,6 +50,7 @@ t1 = PythonOperator(
     python_callable=read_from_folder_a,
     provide_context=True,
     dag=dag,
+    catchup=False
 )
 
 # Define task order

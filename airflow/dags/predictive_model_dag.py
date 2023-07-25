@@ -11,9 +11,9 @@ import pandas as pd
 import numpy as np
 
 # define directory to handle data
-FOLDER_A = '/usr/local/airflow/Folder_A'
-FOLDER_B = '/usr/local/airflow/Folder_B'
-FOLDER_C = '/usr/local/airflow/Folder_C'
+WAITING_LIST = '/usr/local/airflow/WaitingList'
+NEW_CLIENTS = '/usr/local/airflow/NewClients'
+PROCESSED_cLIENTS = '/usr/local/airflow/ProcessedClients'
 LOGS = '/usr/local/airflow/Logs/log.txt'
 
 # define the url of your model service
@@ -134,6 +134,7 @@ t1 = PythonOperator(
     python_callable=check_for_new_data,
     provide_context=True,
     dag=dag,
+    catchup=False
 )
 
 t2 = PythonOperator(
@@ -141,6 +142,7 @@ t2 = PythonOperator(
     python_callable=make_predictions,
     provide_context=True,
     dag=dag,
+    catchup=False
 )
 
 # Define task order
