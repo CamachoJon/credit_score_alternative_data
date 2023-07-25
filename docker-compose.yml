@@ -1,0 +1,27 @@
+version: '3.7'
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - 8000:8000
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - 8501:8501
+  
+  airflow:
+    build: ./airflow
+    volumes:
+      - ./airflow/dags:/root/airflow/dags
+      - ./airflow/NewClients:/usr/local/airflow/NewClients
+      - ./airflow/ProcessedClients:/usr/local/airflow/ProcessedClients
+      - ./airflow/WaitingList:/usr/local/airflow/WaitingList
+    ports:
+      - "8080:8080"
