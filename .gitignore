@@ -168,3 +168,5 @@ cython_debug/
 
 /data
 /notebooks/pickles
+/test/
+/.DS_Store
