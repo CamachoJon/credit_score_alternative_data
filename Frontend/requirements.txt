@@ -3,3 +3,6 @@ numpy
 streamlit
 requests
 joblib
+streamlit_option_menu
+plotly
+scipy
