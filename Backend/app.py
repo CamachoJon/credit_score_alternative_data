@@ -23,7 +23,6 @@ sys.path.append("..")
 # define the app and the base URL
 app = FastAPI()
 
-
 @app.get('/user_data', response_model=List[Dict])
 async def get_user_data():
     db = Database()
@@ -38,12 +37,28 @@ async def get_user_data():
     # Use FastAPI's jsonable_encoder to convert our data into JSON compatible format
     return jsonable_encoder(results_dict)
 
-
 # define the index
 @app.get("/")
 async def root():
     return {"message": "This is the root route of the API."}
 
+
+@app.post("/predict")
+async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
+    db = Database()
+    og_df = pd.DataFrame(features)
+    og_df = DataPreparation.remove_unnecessary_cols(og_df)
+    df = prepare_data(features)
+    predictions = make_prediction(df)
+    og_df = add_target_and_date(og_df, predictions)
+    write_to_db(og_df, db)
+    response = og_df.to_dict()
+    
+    return response
+
+@app.get("/generate_report")
+async def generate_report():
+    pass
 
 def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
     df = pd.DataFrame(features)
@@ -86,17 +101,6 @@ def generate_fake_data():
         'Birthdate': fake_birthdate
     }
     return data_dict
-
-
-@app.post("/predict")
-async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
-    db = Database()
-    og_df = pd.DataFrame(features)
-    og_df = DataPreparation.remove_unnecessary_cols(og_df)
-    df = prepare_data(features)
-    predictions = make_prediction(df)
-    og_df = add_target_and_date(og_df, predictions)
-    write_to_db(og_df, db)
 
 
 class NpEncoder(json.JSONEncoder):
