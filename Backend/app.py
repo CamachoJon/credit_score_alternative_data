@@ -44,6 +44,66 @@ async def get_user_data():
     # Use FastAPI's jsonable_encoder to convert our data into JSON compatible format
     return jsonable_encoder(results_dict)
 
+@app.get('/get_user_info')
+async def get_user_info(name: str = '', lastname: str = ''):
+
+    query = f'''SELECT us.[TARGET]
+      ,us.[CODE_GENDER]
+      ,us.[FLAG_OWN_CAR]
+      ,us.[FLAG_OWN_REALTY]
+      ,us.[CNT_CHILDREN]
+      ,us.[AMT_INCOME_TOTAL]
+      ,us.[AMT_CREDIT]
+      ,us.[AMT_ANNUITY]
+      ,us.[AMT_GOODS_PRICE]
+      ,us.[NAME_TYPE_SUITE]
+      ,us.[NAME_INCOME_TYPE]
+      ,us.[NAME_EDUCATION_TYPE]
+      ,us.[NAME_FAMILY_STATUS]
+      ,us.[NAME_HOUSING_TYPE]
+      ,us.[REGION_POPULATION_RELATIVE]
+      ,us.[DAYS_BIRTH]
+      ,us.[DAYS_EMPLOYED]
+      ,us.[DAYS_REGISTRATION]
+      ,us.[DAYS_ID_PUBLISH]
+      ,us.[OWN_CAR_AGE]
+      ,us.[OCCUPATION_TYPE]
+      ,us.[CNT_FAM_MEMBERS]
+      ,us.[REGION_RATING_CLIENT]
+      ,us.[REGION_RATING_CLIENT_W_CITY]
+      ,us.[WEEKDAY_APPR_PROCESS_START]
+      ,us.[HOUR_APPR_PROCESS_START]
+      ,us.[ORGANIZATION_TYPE]
+      ,us.[EXT_SOURCE_1]
+      ,us.[EXT_SOURCE_2]
+      ,us.[EXT_SOURCE_3]
+      ,us.[EMERGENCYSTATE_MODE]
+      ,us.[OBS_30_CNT_SOCIAL_CIRCLE]
+      ,us.[DEF_30_CNT_SOCIAL_CIRCLE]
+      ,us.[OBS_60_CNT_SOCIAL_CIRCLE]
+      ,us.[DEF_60_CNT_SOCIAL_CIRCLE]
+      ,us.[DAYS_LAST_PHONE_CHANGE]
+      ,us.[AMT_REQ_CREDIT_BUREAU_HOUR]
+      ,us.[AMT_REQ_CREDIT_BUREAU_DAY]
+      ,us.[AMT_REQ_CREDIT_BUREAU_WEEK]
+      ,us.[AMT_REQ_CREDIT_BUREAU_MON]
+      ,us.[AMT_REQ_CREDIT_BUREAU_QRT]
+      ,us.[AMT_REQ_CREDIT_BUREAU_YEAR]
+      ,us.[DATE] 
+      FROM [dbo].[USERS_INFO] AS ui
+      INNER JOIN USERS us
+      ON ui.ID = us.ID
+      WHERE ui.NAME = \'{name}\' AND ui.LASTNAME = \'{lastname}\''''
+    
+    db = Database()
+    results = db.read(query)
+
+    # convert results to JSON
+    results_json = results.to_json(orient="records")
+
+    # return past predictions as JSON
+    return results_json
+
 # define the index
 @app.get("/")
 async def root():
@@ -131,11 +191,11 @@ def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
 def write_to_db(df: pd.DataFrame, db: Database) -> None:
     dict_list = df.to_dict(orient='records')
     for record in dict_list:
-        # fake_data = generate_fake_data()
-        # user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
+        fake_data = generate_fake_data()
+        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         user_analysis_query = Database.format_sql_command('USERS', record)
         db.write(user_analysis_query)
-        # db.write(user_info_query)
+        db.write(user_info_query)
 
 
 def generate_fake_data():
@@ -145,9 +205,9 @@ def generate_fake_data():
     fake_birthdate = fake.date_of_birth().strftime("%Y-%m-%d")
 
     data_dict = {
-        'Name': fake_name,
-        'LastName': fake_lastname,
-        'Birthdate': fake_birthdate
+        'NAME': fake_name,
+        'LASTNAME': fake_lastname,
+        'BIRTHDATE': fake_birthdate
     }
     return data_dict
 
