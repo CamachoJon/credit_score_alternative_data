@@ -39,20 +39,28 @@ with st.container():
             'Past 1 month': 30,
             'Past 6 months': 180
         }
-        selected_option = st.selectbox('Select Day Range', list(options.keys()))
 
-        if st.session_state.prev_selected_option != options[selected_option]:
-            df = odf
-            st.session_state.prev_selected_option = options[selected_option]
+        # cola1, cola2, cola3, cola4 = st.columns(4)
 
-        # Convert the 'Date' column to datetime objects
-        odf['DATE'] = pd.to_datetime(odf['DATE'])
+        # with cola1:
+        #     st.write(f"Total: {len(df)}")
+        
+        col01, col02 = st.columns(2)
+        with col01:
+            selected_option = st.selectbox('Select Day Range', list(options.keys()))
 
-        # Get the date threshold based on the selected option
-        date_threshold = pd.to_datetime('today') - pd.Timedelta(days=st.session_state.prev_selected_option)
+            if st.session_state.prev_selected_option != options[selected_option]:
+                df = odf
+                st.session_state.prev_selected_option = options[selected_option]
 
-        # Filter the DataFrame based on the date_threshold
-        df = odf[odf['DATE'] >= date_threshold]
+                # Convert the 'Date' column to datetime objects
+                odf['DATE'] = pd.to_datetime(odf['DATE'])
+
+                # Get the date threshold based on the selected option
+                date_threshold = pd.to_datetime('today') - pd.Timedelta(days=st.session_state.prev_selected_option)
+
+                # Filter the DataFrame based on the date_threshold
+                df = odf[odf['DATE'] >= date_threshold]
 
         col11, col12, col13, col14 = st.columns(4)
         with col11:
@@ -111,9 +119,9 @@ with st.container():
             weekday_counts.columns = ["WEEKDAY_APPR_PROCESS_START", "Count"]
 
             # Order weekdays in descending order
-            weekday_counts = weekday_counts.sort_values(by="Count", ascending=False)
+            weekday_counts = weekday_counts.sort_values(by="Count", ascending=True)
              # Plot the frequency distribution using Plotly bar chart
-            fig = px.bar(weekday_counts, x="WEEKDAY_APPR_PROCESS_START", y="Count",
+            fig = px.line(weekday_counts, x="WEEKDAY_APPR_PROCESS_START", y="Count",
                  labels={"WEEKDAY_APPR_PROCESS_START": "Weekday", "Count": "Count"},
                  title="Weekday Appraisal Start Frequency Distribution",
                  text="Count")  # Display count on top of the bars
@@ -121,7 +129,6 @@ with st.container():
             # Customize the layout of the chart
             fig.update_layout(
                 xaxis=dict(title="Weekday"),
-                yaxis=dict(title="Frequency"),
                 showlegend=False,
                 bargap=0.1,
                 bargroupgap=0.2,
@@ -130,40 +137,11 @@ with st.container():
             # Show the chart in Streamlit
             st.plotly_chart(fig, use_container_width=True)
         
-        # with col32:
-        #     df["OWN_CAR_AGE"] = pd.to_numeric(df["OWN_CAR_AGE"], errors="coerce")
-        #     df["OWN_CAR_AGE"].fillna(-1, inplace=True)
-
-        #     # Create 3-year intervals for the car age
-        #     interval_size = 3
-        #     intervals = pd.IntervalIndex.from_tuples([(i, i + interval_size) for i in range(0, int(df["OWN_CAR_AGE"].max()), interval_size)])
-        #     df["Age_Interval"] = pd.cut(df["OWN_CAR_AGE"], bins=intervals)
-
-        #     # Calculate the count of customers in each interval
-        #     interval_counts = df["Age_Interval"].value_counts().reset_index()
-        #     interval_counts.columns = ["Age_Interval", "Count"]
-
-        #     # Sort intervals by their start value
-        #     interval_counts = interval_counts.sort_values(by="Age_Interval")
-
-        #     # Plot the frequency distribution using Plotly bar chart
-        #     fig = px.bar(interval_counts, x="Age_Interval", y="Count",
-        #                 labels={"Age_Interval": "Car Age Interval", "Count": "Count"},
-        #                 title="Customer Car Age Distribution",
-        #                 text="Count")  # Display count on top of the bars
-
-        #     # Customize the layout of the chart
-        #     fig.update_layout(
-        #         xaxis=dict(title="Car Age Interval"),
-        #         yaxis=dict(title="Count"),
-        #         showlegend=False,
-        #         bargap=0.1,
-        #         bargroupgap=0.2,
-        #     )
-
-        #     # Show the chart in Streamlit
-        #     st.plotly_chart(fig, use_container_width=True)
-        
+        with col32:
+            counts = df['OCCUPATION_TYPE'].value_counts()
+            fig = go.Figure(data=[go.Pie(labels=counts.index, values=counts.values)])
+            fig.update_layout(title='Occupation Type', title_x=0.3)
+            st.plotly_chart(fig, use_container_width=True)
 
     if selected == "User Input":
         with st.container():
@@ -295,8 +273,6 @@ with st.container():
             else:
                 st.subheader("Error:")
                 st.write("There was an error with the API request.")
-
-
 
 st.markdown('''
         <style>
