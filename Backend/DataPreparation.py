@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import joblib
 
+
 class DataPreparation:
 
     def __init__(self, input_df):
@@ -71,7 +72,7 @@ class DataPreparation:
         return df
 
     def one_hot_encoding(self, df):
-        encoder = joblib.load()
+        encoder = joblib.load('/app/Model/onehotencoder.joblib')
 
         # Create a copy of the DataFrame to work with
         encoded_df = df.copy()
@@ -96,11 +97,11 @@ class DataPreparation:
         # Concatenate the encoded DataFrame with the remaining features
         return pd.concat([encoded_df, ohe_df], axis=1)
 
-    def regression_filler(self, df, support, fill):
+    def regression_filler_1(self, df):
         data = df.loc[:, ["EXT_SOURCE_1",
                           "EXT_SOURCE_2", "EXT_SOURCE_3"]].dropna()
-        x_filler = data.drop(columns=fill)
-        y_filler = data[fill]
+        x_filler = data.drop(columns="EXT_SOURCE_1")
+        y_filler = data["EXT_SOURCE_1"]
 
         scaler = StandardScaler()
         x_filler_scaled = scaler.fit_transform(x_filler)
@@ -108,25 +109,49 @@ class DataPreparation:
         reg_model = Ridge(alpha=0.001)
         reg_model.fit(x_filler_scaled, y_filler)
 
-        mask = (~(df[support[0]].isna())) & (
-            ~(df[support[1]].isna())) & (df[fill].isna())
-        x_pred = df.loc[mask, [support[0], support[1]]]
+        mask = (~(df["EXT_SOURCE_2"].isna())) & (
+            ~(df["EXT_SOURCE_3"].isna())) & (df["EXT_SOURCE_1"].isna())
+        x_pred = df.loc[mask, ["EXT_SOURCE_2", "EXT_SOURCE_3"]]
         x_pred_scaled = scaler.transform(x_pred)
-        df.loc[mask, fill] = reg_model.predict(x_pred_scaled)
+        df.loc[mask, "EXT_SOURCE_1"] = reg_model.predict(x_pred_scaled)
+
+        return df
+
+    def regression_filler_2(self, df):
+        data = df.loc[:, ["EXT_SOURCE_1",
+                          "EXT_SOURCE_2", "EXT_SOURCE_3"]].dropna()
+        x_filler = data.drop(columns="EXT_SOURCE_3")
+        y_filler = data["EXT_SOURCE_3"]
+
+        scaler = StandardScaler()
+        x_filler_scaled = scaler.fit_transform(x_filler)
+
+        reg_model = Ridge(alpha=0.001)
+        reg_model.fit(x_filler_scaled, y_filler)
+
+        mask = (~(df["EXT_SOURCE_2"].isna())) & (
+            ~(df["EXT_SOURCE_1"].isna())) & (df["EXT_SOURCE_3"].isna())
+        x_pred = df.loc[mask, ["EXT_SOURCE_1", "EXT_SOURCE_2"]]
+        x_pred_scaled = scaler.transform(x_pred)
+        df.loc[mask, "EXT_SOURCE_3"] = reg_model.predict(x_pred_scaled)
+
+        return df
 
     def scale_numerical_features(self, df):
-        scaler = joblib.load()
+        scaler = joblib.load('/app/Model/standardscaler.joblib')
         # Create a copy of the DataFrame to work with
         scaled_df = df.copy()
 
         # Fill missing values in numerical features
-        scaled_df[self.numerical_features] = scaled_df[self.numerical_features].apply(lambda x: x.fillna(x.median()),axis=0)
+        scaled_df[self.numerical_features] = scaled_df[self.numerical_features].apply(
+            lambda x: x.fillna(x.median()), axis=0)
 
         # Scaling features
         scaled_features = scaler.transform(scaled_df[self.numerical_features])
 
         # Create a new DataFrame with scaled values
-        scaled_features_df = pd.DataFrame(scaled_features, columns=self.numerical_features)
+        scaled_features_df = pd.DataFrame(
+            scaled_features, columns=self.numerical_features)
 
         # Drop the numerical features from the scaled DataFrame
         scaled_df = scaled_df.drop(columns=self.numerical_features)
@@ -139,23 +164,30 @@ class DataPreparation:
         return pd.concat([scaled_df, scaled_features_df], axis=1)
 
     def cyclic_encoding_day(self, df):
-        mapping = {'MONDAY': 1, 'TUESDAY': 2, 'WEDNESDAY': 3, 'THURSDAY': 4, 'FRIDAY': 5, 'SATURDAY': 6, 'SUNDAY': 7}
+        mapping = {'MONDAY': 1, 'TUESDAY': 2, 'WEDNESDAY': 3,
+                   'THURSDAY': 4, 'FRIDAY': 5, 'SATURDAY': 6, 'SUNDAY': 7}
 
-        df['WEEKDAY_APPR_PROCESS_START'] = df['WEEKDAY_APPR_PROCESS_START'].map(mapping)
+        df['WEEKDAY_APPR_PROCESS_START'] = df['WEEKDAY_APPR_PROCESS_START'].map(
+            mapping)
 
-        df['DAY_WEEK_SIN'] = np.sin(df['WEEKDAY_APPR_PROCESS_START'] * (2 * np.pi / 7))
-        df['DAY_WEEK_COS'] = np.cos(df['WEEKDAY_APPR_PROCESS_START'] * (2 * np.pi / 7))
+        df['DAY_WEEK_SIN'] = np.sin(
+            df['WEEKDAY_APPR_PROCESS_START'] * (2 * np.pi / 7))
+        df['DAY_WEEK_COS'] = np.cos(
+            df['WEEKDAY_APPR_PROCESS_START'] * (2 * np.pi / 7))
 
         df = df.drop(columns=['WEEKDAY_APPR_PROCESS_START'])
         return df
 
     def cyclic_encoding_hour(self, df):
         # Convert the hour (in 24h format) to a number between 0 and 1, and multiply it by 2*pi to convert it to radians
-        df['HOUR_APPR_PROCESS_START_rad'] = df['HOUR_APPR_PROCESS_START'] / 24. * 2 * np.pi
+        df['HOUR_APPR_PROCESS_START_rad'] = df['HOUR_APPR_PROCESS_START'] / \
+            24. * 2 * np.pi
 
         # Create the two new features using sine and cosine
-        df['HOUR_APPR_PROCESS_START_sin'] = np.sin(df['HOUR_APPR_PROCESS_START_rad'])
-        df['HOUR_APPR_PROCESS_START_cos'] = np.cos(df['HOUR_APPR_PROCESS_START_rad'])
+        df['HOUR_APPR_PROCESS_START_sin'] = np.sin(
+            df['HOUR_APPR_PROCESS_START_rad'])
+        df['HOUR_APPR_PROCESS_START_cos'] = np.cos(
+            df['HOUR_APPR_PROCESS_START_rad'])
 
         # Drop the original 'HOUR_APPR_PROCESS_START' column and the intermediary radians column
         df = df.drop(['HOUR_APPR_PROCESS_START_rad'], axis=1)
@@ -163,11 +195,12 @@ class DataPreparation:
         return df
 
     def prepare_data(self):
+        self.input_df.replace('NaN', np.nan, inplace=True)
         self.input_df = self.drop_features(self.input_df)
         self.input_df = self.map_features(self.input_df)
         self.input_df = self.one_hot_encoding(self.input_df)
-        self.input_df = self.regression_filler(self.input_df, 'EXT_SOURCE_1', ("EXT_SOURCE_2", "EXT_SOURCE_3"))
-        self.input_df = self.regression_filler(self.input_df, 'EXT_SOURCE_3', ("EXT_SOURCE_1", "EXT_SOURCE_2"))
+        self.input_df = self.regression_filler_1(self.input_df)
+        self.input_df = self.regression_filler_2(self.input_df)
         self.input_df = self.scale_numerical_features(self.input_df)
         self.input_df = self.cyclic_encoding_day(self.input_df)
         self.input_df = self.cyclic_encoding_hour(self.input_df)

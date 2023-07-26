@@ -3,6 +3,7 @@ import os
 import pyodbc
 import pandas as pd
 
+
 class Database:
     def __init__(self):
         load_dotenv()
@@ -35,8 +36,15 @@ class Database:
         cursor.commit()
         conn.close()
 
-    @staticmethod
-    def format_sql_command(table: str, data: dict) -> str:
-        columns = ', '.join(data.keys())
-        values = ', '.join(f"'{value}'" if isinstance(value, str) else str(value) for value in data.values())
-        return f'INSERT INTO {table} ({columns}) VALUES ({values});'
+
+@staticmethod
+def format_sql_command(table: str, data: dict) -> str:
+    columns = ', '.join(data.keys())
+
+    # Convert values to proper SQL representation, using NULL for None values and empty strings
+    values = ', '.join('%s' if value is None or value == '' else f"'{value}'" if isinstance(
+        value, str) else str(value) for value in data.values())
+
+    # Create the parameterized query
+    query = f'INSERT INTO {table} ({columns}) VALUES ({values});'
+    return query

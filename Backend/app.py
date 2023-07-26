@@ -1,3 +1,4 @@
+from faker import Faker
 import json
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ import numpy as np
 from fastapi import FastAPI, Request, Query
 from fastapi.responses import JSONResponse
 import uvicorn
-import datetime as dt
+from datetime import date
 from typing import List, Dict, Union
 import random
 from fastapi.encoders import jsonable_encoder
@@ -16,18 +17,18 @@ from Database import Database
 from DataPreparation import DataPreparation
 import sys
 sys.path.append("..")
-from credit_risk import inference
 
 
 # define the app and the base URL
 app = FastAPI()
+
 
 @app.get('/user_data', response_model=List[Dict])
 async def get_user_data():
     db = Database()
     query = "SELECT * FROM [dbo].[USERS]"
     results = db.read(query)
-    
+
     results.replace([np.inf, -np.inf], np.nan, inplace=True)
     results.fillna(value="NaN", inplace=True)  # use a string to represent NaN
 
@@ -42,42 +43,57 @@ async def get_user_data():
 async def root():
     return {"message": "This is the root route of the API."}
 
+
+def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
+    df = pd.DataFrame(features)
+    data_preparation = DataPreparation(df)
+    processed_df = data_preparation.prepare_data()
+    return processed_df
+
+
+def make_prediction(df: pd.DataFrame) -> List:
+    model = joblib.load('/app/Model/xgb_model.joblib')
+    predictions = model.predict(df).tolist()
+    return predictions
+
+
+def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
+    df.insert(0, 'TARGET', predictions)
+    df['DATE'] = date.today().strftime("%d-%m-%Y")
+    return df
+
+
+def write_to_db(df: pd.DataFrame, db: Database) -> None:
+    dict_list = df.to_dict(orient='records')
+    for record in dict_list:
+        fake_data = generate_fake_data()
+        user_info_query = db.format_sql_command('USERS_INFO', fake_data)
+        user_analysis_query = db.format_sql_command('USERS', [record])
+        db.write(user_analysis_query)
+        db.write(user_info_query)
+
+
+def generate_fake_data():
+    fake = Faker()
+    fake_name = fake.name()
+    fake_lastname = fake.last_name()
+    fake_birthdate = fake.date_of_birth().strftime("%Y-%m-%d")
+
+    data_dict = {
+        'Name': fake_name,
+        'LastName': fake_lastname,
+        'Birthdate': fake_birthdate
+    }
+    return data_dict
+
+
 @app.post("/predict")
-async def predict(features: List[Dict[str, Union[str, int, float]]]):
-    # to do prediction using the dataframe
-    df = pd.DataFrame(columns=features[0])
-    df = df.append(features, ignore_index=True)
-
-    current_date = dt.date.today().strftime("%d-%m-%Y")
-
-    predictions = inference.make_predictions(df)
-    df["PREDICTION_DEFAULTER"] = predictions
-    final_features = df.to_dict(orient='records')
-
-    # insert into  db here
-    for input in final_features:
-        #prediction = random.randint(0, 1)
-        prediction = input['PREDICTION_DEFAULTER']
-
-        columns = list(input.keys())
-        columns.append("PredictionDate")
-        columns.append("Cancelled")
-        columns = ', '.join(columns)
-
-        # ********************** TO ADD DATABASE WRITE QUERY ***************************
-        #
-        #
-        #
-
-        #query_command = f'INSERT INTO Predictions ({columns}) VALUES ({values});'
-        
-        #database_write(query_command)
-
-        input['DatePrediction'] = str(current_date)
-
-    json_data = json.dumps(final_features)
-
-    return json_data
+async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
+    db = Database()
+    df = prepare_data(features)
+    predictions = make_prediction(df)
+    df = add_target_and_date(df, predictions)
+    write_to_db(df, db)
 
 
 class NpEncoder(json.JSONEncoder):
@@ -91,18 +107,6 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.bool_):
             return bool(obj)
         return super(NpEncoder, self).default(obj)
-
-@app.get("/get_unique_vals")
-def get_unique_values():
-    uniq_val_dict = joblib.load("Model/credit-cat-cols-uniq-vals.joblib")
-    json_data = json.dumps(uniq_val_dict, cls=NpEncoder)
-    return json_data
-
-@app.get("/get_features")
-def get_feature_sets():
-    fs_list = joblib.load("Model/credit-features.joblib")
-    json_data = jsonable_encoder(fs_list)
-    return json_data
 
 
 if __name__ == "__main__":

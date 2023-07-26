@@ -7,6 +7,7 @@ COPY dags ./dags
 COPY NewClients ./NewClients
 COPY ProcessedClients ./ProcessedClients
 COPY WaitingList ./WaitingList
+COPY Logger ./Logger
 
 # Copy supervisord.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf   

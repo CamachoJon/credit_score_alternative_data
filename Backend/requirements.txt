@@ -1,4 +1,4 @@
-scikit-learn
+scikit-learn==1.2.2
 pandas
 numpy
 seaborn
@@ -11,3 +11,4 @@ pyodbc
 fastapi
 uvicorn
 xgboost
+faker
