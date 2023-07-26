@@ -41,7 +41,7 @@ dag = DAG(
     'ingestion_model_dag',
     default_args=default_args,
     description='DAG for data ingestion',
-    schedule_interval='*/1 * * * *',
+    schedule_interval=timedelta(seconds=10),
     catchup=False
 )
 

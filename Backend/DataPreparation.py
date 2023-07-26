@@ -80,12 +80,21 @@ class DataPreparation:
         # Fill missing values in categorical features
         encoded_df[self.categorical_features] = encoded_df[self.categorical_features].apply(
             lambda x: x.fillna(x.mode()[0]), axis=0)
+        
+        # Transform the data
         encoded = encoder.transform(encoded_df[self.categorical_features])
+
+        # Get the feature names
         feature_names = encoder.get_feature_names_out()
 
-        # Create a new DataFrame with encoded values
+        # Create a DataFrame with the encoded values
         ohe_df = pd.DataFrame(encoded.toarray(), columns=feature_names)
         ohe_df = ohe_df.astype(int)
+
+        # If there are unseen categories, add them as new columns filled with zeros
+        unseen_categories = set(feature_names) - set(ohe_df.columns)
+        for category in unseen_categories:
+            ohe_df[category] = 0
 
         # Drop the categorical features from the encoded DataFrame
         encoded_df = encoded_df.drop(columns=self.categorical_features)
@@ -95,6 +104,7 @@ class DataPreparation:
         ohe_df.reset_index(drop=True, inplace=True)
 
         # Concatenate the encoded DataFrame with the remaining features
+        # return pd.concat([encoded_df, ohe_df.reindex(sorted(ohe_df.columns), axis=1)], axis=1)
         return pd.concat([encoded_df, ohe_df], axis=1)
 
     def regression_filler_1(self, df):
@@ -195,14 +205,56 @@ class DataPreparation:
         return df
 
     def prepare_data(self):
+
+        if 'TARGET' in self.input_df.columns:
+            self.input_df.drop('TARGET', axis=1, inplace=True)
+
+        self.input_df = self.input_df.drop(self.input_df[self.input_df['NAME_INCOME_TYPE'] == 'Unemployed'].index, inplace=False)
+        self.input_df = self.input_df.drop(self.input_df[self.input_df['NAME_INCOME_TYPE'] == 'Student'].index, inplace=False)
+        self.input_df = self.input_df.drop(self.input_df[self.input_df['NAME_INCOME_TYPE'] == 'Businessman'].index, inplace=False)
+        self.input_df = self.input_df.drop(self.input_df[self.input_df['NAME_INCOME_TYPE'] == 'Maternity leave'].index, inplace=False)
+
         self.input_df.replace('NaN', np.nan, inplace=True)
         self.input_df = self.drop_features(self.input_df)
-        self.input_df = self.map_features(self.input_df)
-        self.input_df = self.one_hot_encoding(self.input_df)
         self.input_df = self.regression_filler_1(self.input_df)
         self.input_df = self.regression_filler_2(self.input_df)
+        self.input_df = self.map_features(self.input_df)
+        self.input_df = self.one_hot_encoding(self.input_df)
         self.input_df = self.scale_numerical_features(self.input_df)
         self.input_df = self.cyclic_encoding_day(self.input_df)
         self.input_df = self.cyclic_encoding_hour(self.input_df)
 
         return self.input_df
+
+    @staticmethod
+    def remove_unnecessary_cols(df):
+        # Features classification
+        unused_features = ['NAME_CONTRACT_TYPE', 'SK_ID_CURR', 'FONDKAPREMONT_MODE', 'HOUSETYPE_MODE',
+                                'WALLSMATERIAL_MODE', 'FLAG_DOCUMENT_2', 'FLAG_DOCUMENT_3', 'FLAG_DOCUMENT_4',
+                                'FLAG_DOCUMENT_5', 'FLAG_DOCUMENT_6', 'FLAG_DOCUMENT_7', 'FLAG_DOCUMENT_8',
+                                'FLAG_DOCUMENT_9', 'FLAG_DOCUMENT_10', 'FLAG_DOCUMENT_11', 'FLAG_DOCUMENT_12',
+                                'FLAG_DOCUMENT_13', 'FLAG_DOCUMENT_14', 'FLAG_DOCUMENT_15', 'FLAG_DOCUMENT_16',
+                                'FLAG_DOCUMENT_17', 'FLAG_DOCUMENT_18', 'FLAG_DOCUMENT_19', 'FLAG_DOCUMENT_20',
+                                'FLAG_DOCUMENT_21',
+                                'APARTMENTS_AVG', 'BASEMENTAREA_AVG', 'YEARS_BEGINEXPLUATATION_AVG', 'YEARS_BUILD_AVG',
+                                'COMMONAREA_AVG', 'ELEVATORS_AVG', 'ENTRANCES_AVG', 'FLOORSMAX_AVG', 'FLOORSMIN_AVG',
+                                'LANDAREA_AVG', 'LIVINGAPARTMENTS_AVG', 'LIVINGAREA_AVG', 'NONLIVINGAPARTMENTS_AVG',
+                                'NONLIVINGAREA_AVG', 'APARTMENTS_MODE', 'BASEMENTAREA_MODE', 'YEARS_BEGINEXPLUATATION_MODE',
+                                'YEARS_BUILD_MODE', 'COMMONAREA_MODE', 'ELEVATORS_MODE', 'ENTRANCES_MODE',
+                                'FLOORSMAX_MODE', 'FLOORSMIN_MODE', 'LANDAREA_MODE', 'LIVINGAPARTMENTS_MODE',
+                                'LIVINGAREA_MODE', 'NONLIVINGAPARTMENTS_MODE', 'NONLIVINGAREA_MODE', 'APARTMENTS_MEDI',
+                                'BASEMENTAREA_MEDI', 'YEARS_BEGINEXPLUATATION_MEDI', 'YEARS_BUILD_MEDI', 'COMMONAREA_MEDI',
+                                'ELEVATORS_MEDI', 'ENTRANCES_MEDI', 'FLOORSMAX_MEDI', 'FLOORSMIN_MEDI', 'LANDAREA_MEDI',
+                                'LIVINGAPARTMENTS_MEDI', 'LIVINGAREA_MEDI', 'NONLIVINGAPARTMENTS_MEDI', 'NONLIVINGAREA_MEDI',
+                                'TOTALAREA_MODE']
+
+        binary_features = ['FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE', 'FLAG_PHONE', 'FLAG_EMAIL', 'REG_REGION_NOT_LIVE_REGION',
+                                'REG_REGION_NOT_WORK_REGION', 'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY', 'REG_CITY_NOT_WORK_CITY', 'LIVE_CITY_NOT_WORK_CITY']
+
+        if 'TARGET' in df.columns:
+            df.drop('TARGET', axis=1, inplace=True)
+            
+        df = df.drop(unused_features, axis=1)
+        df = df.drop(binary_features, axis=1)
+
+        return df

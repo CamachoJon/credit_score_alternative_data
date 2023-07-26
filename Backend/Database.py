@@ -36,15 +36,17 @@ class Database:
         cursor.commit()
         conn.close()
 
+    def format_sql_command(table: str, data: dict) -> str:
+        columns = ', '.join(data.keys())
 
-@staticmethod
-def format_sql_command(table: str, data: dict) -> str:
-    columns = ', '.join(data.keys())
+        # Convert values to proper SQL representation, using NULL for None values and empty strings
+        values = ', '.join('NULL' if value is None or value == '' or value == 'NaN' else f"'{value}'" if isinstance(
+            value, str) else str(value) for value in data.values())
 
-    # Convert values to proper SQL representation, using NULL for None values and empty strings
-    values = ', '.join('%s' if value is None or value == '' else f"'{value}'" if isinstance(
-        value, str) else str(value) for value in data.values())
+        # Create the parameterized query
+        query = f'INSERT INTO {table} ({columns}) VALUES ({values});'
+        return query
 
-    # Create the parameterized query
-    query = f'INSERT INTO {table} ({columns}) VALUES ({values});'
-    return query
+
+
+

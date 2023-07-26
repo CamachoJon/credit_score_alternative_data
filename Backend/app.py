@@ -1,3 +1,4 @@
+import datetime
 from faker import Faker
 import json
 from fastapi import FastAPI
@@ -9,7 +10,7 @@ import numpy as np
 from fastapi import FastAPI, Request, Query
 from fastapi.responses import JSONResponse
 import uvicorn
-from datetime import date
+from datetime import datetime
 from typing import List, Dict, Union
 import random
 from fastapi.encoders import jsonable_encoder
@@ -59,18 +60,18 @@ def make_prediction(df: pd.DataFrame) -> List:
 
 def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
     df.insert(0, 'TARGET', predictions)
-    df['DATE'] = date.today().strftime("%d-%m-%Y")
+    df['DATE'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return df
 
 
 def write_to_db(df: pd.DataFrame, db: Database) -> None:
     dict_list = df.to_dict(orient='records')
     for record in dict_list:
-        fake_data = generate_fake_data()
-        user_info_query = db.format_sql_command('USERS_INFO', fake_data)
-        user_analysis_query = db.format_sql_command('USERS', [record])
+        # fake_data = generate_fake_data()
+        # user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
+        user_analysis_query = Database.format_sql_command('USERS', record)
         db.write(user_analysis_query)
-        db.write(user_info_query)
+        # db.write(user_info_query)
 
 
 def generate_fake_data():
@@ -90,10 +91,12 @@ def generate_fake_data():
 @app.post("/predict")
 async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
     db = Database()
+    og_df = pd.DataFrame(features)
+    og_df = DataPreparation.remove_unnecessary_cols(og_df)
     df = prepare_data(features)
     predictions = make_prediction(df)
-    df = add_target_and_date(df, predictions)
-    write_to_db(df, db)
+    og_df = add_target_and_date(og_df, predictions)
+    write_to_db(og_df, db)
 
 
 class NpEncoder(json.JSONEncoder):

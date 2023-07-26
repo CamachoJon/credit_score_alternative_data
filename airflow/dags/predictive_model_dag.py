@@ -73,7 +73,7 @@ dag = DAG(
     'predictive_model_dag',
     default_args=default_args,
     description='A simple predictive model DAG',
-    schedule_interval='*/2 * * * *',
+    schedule_interval=timedelta(seconds=15),
     catchup=False
 )
 
