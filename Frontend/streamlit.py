@@ -6,6 +6,9 @@ import plotly.figure_factory as ff
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import time
+import random
 
 from services import user as user_service
 import json
@@ -20,7 +23,7 @@ st.set_page_config(layout="wide")
 with st.sidebar:
     selected = option_menu(
         menu_title="Credit Scoring",
-        options=["Home", "User Input", "Reports", "Prediction"]
+        options=["Home", "Model Analysis", "User Report", "Prediction"]
     )
 
 with st.container():
@@ -143,27 +146,120 @@ with st.container():
             fig.update_layout(title='Occupation Type', title_x=0.3)
             st.plotly_chart(fig, use_container_width=True)
 
-    if selected == "User Input":
+    if selected == "Model Analysis":
+        st.title("Model Analysis")
+        chart_placeholder = st.empty()
         with st.container():
-            x1 = np.random.randn(200) - 2
-            x2 = np.random.randn(200)
-            x3 = np.random.randn(200) + 2
+            while True:
+                user_data = user_service.get_all_user_data()
+                df = pd.DataFrame(user_data)
+                
+                df['DATE'] = pd.to_datetime(df['DATE'])
 
-            # Group data together
-            hist_data = [x1, x2, x3]
+                # Get the current date
+                current_date = datetime.now()
 
-            group_labels = ['Group 1', 'Group 2', 'Group 3']
+                # Calculate the date 15 days ago from the current date
+                past_date = current_date - timedelta(days=30)
 
-            # Create distplot with custom bin_size
-            fig = ff.create_distplot(
-                    hist_data, group_labels, bin_size=[.1, .25, .5])
+                # Filter the DataFrame to include predictions made in the past 15 days
+                filtered_df = df[(df['DATE'] >= past_date) & (df['DATE'] <= current_date)]
 
-            # Plot!
-            st.plotly_chart(fig, use_container_width=True)
+                # Group the data by date and count the number of predictions made on each day for TARGET=0
+                grouped_data_0 = filtered_df[filtered_df['TARGET'] == 0].groupby(filtered_df['DATE'].dt.date).size().reset_index(name='count_0')
+
+                # Group the data by date and count the number of predictions made on each day for TARGET=1
+                grouped_data_1 = filtered_df[filtered_df['TARGET'] == 1].groupby(filtered_df['DATE'].dt.date).size().reset_index(name='count_1')
+
+                # Create two Plotly line charts
+                fig = go.Figure()
+
+                # Line chart for TARGET=0
+                fig.add_trace(go.Scatter(x=grouped_data_0['DATE'], y=grouped_data_0['count_0'],
+                                        mode='lines+markers', line=dict(color='rgb(26, 118, 255)'), line_shape="spline",
+                                        marker=dict(size=8, color='rgb(26, 118, 255)', line=dict(width=2)),
+                                        name='TARGET=0',  # Legend label
+                                        text=grouped_data_0['count_0'],  # Display the count as text on the line chart
+                                        textposition="top center"))  # Position of the text label
+
+                # Line chart for TARGET=1
+                fig.add_trace(go.Scatter(x=grouped_data_1['DATE'], y=grouped_data_1['count_1'],
+                                        mode='lines+markers', line=dict(color='rgb(255, 0, 0)'), line_shape="spline",
+                                        marker=dict(size=8, color='rgb(255, 0, 0)', line=dict(width=2)),
+                                        name='TARGET=1',  # Legend label
+                                        text=grouped_data_1['count_1'],  # Display the count as text on the line chart
+                                        textposition="top center"))  # Position of the text label
+
+                # Customize the chart layout
+                fig.update_layout(
+                    title='Number of Predictions (TARGET=0 and TARGET=1) in the Past 15 Days',
+                    xaxis=dict(title='Date'),
+                    yaxis=dict(title='Number of Predictions'),
+                    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                )
+
+                # Show the plot using Streamlit
+                chart_placeholder.plotly_chart(fig, use_container_width=True)
+
+
+                # now = datetime.now()
+                # twelve_hours_ago = now - timedelta(hours=12)
+                # df[df['DATE'] >= twelve_hours_ago]
+
+
+                # fig = px.line(df, x='DATE', y='TARGET', title='Counts of 1s and 0s in the Last 12 Hours',
+                #   labels={'TARGET': 'Count', 'DATE': 'Time'})
+
+                # # Set the x-axis interval to 1 hour
+                # fig.update_xaxes(
+                #     dtick='HOUR',
+                #     tickformat='%H:%M:%S',  # Display hours, minutes, and seconds on the x-axis
+                #     ticklabelmode='period',
+                #     ticklabelposition='inside'
+                # )
+
+                # if not df["DATE"].empty:
+                #     # Plot the line chart using Plotly
+                #     st.plotly_chart(fig, use_container_width=True)
+                # else:
+                #     st.warning("No data available in the last 12 hours.")
+
+
+                time.sleep(3)      
+
+    if selected == "User Report":
+        st.title(f"User Report")
+        colr1, colr2 = st.columns(2)
+
+        with colr1:
+            firstname = st.text_input("Customer's First Name:")
+
+        with colr2:
+            lastname = st.text_input("Customer's Last Name:")
+
+        if st.button("Get User Information"):
+            if firstname and lastname:
+                user_info_str = user_service.get_user_data_by_name(firstname, lastname)
+                user_info = json.loads(user_info_str)
+
+                # st.write(user_info_str)
+                
+                gender = 'Male' if user_info[0]['CODE_GENDER'] == 'M' else 'Female'
+                st.write(f"Gender : {gender}")
+                st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
+                st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
+                st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
+                st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
+                st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
+                
+                owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
+                st.write(f"Owns Car : {owns_car}")
+                
+                if(user_info):
+                    st.button("Download PDF Report 📑")
+            else:
+                st.warning("Both First Name & Last Name of the Customer are required to search data.")
             
-    if selected == "Reports":
-        st.title(f"You have selected: {selected}")
-
     if selected == "Prediction":
         # To get unique values of categorical columns
         uv = requests.get(UNIQ_VAL_URL)
@@ -273,6 +369,8 @@ with st.container():
             else:
                 st.subheader("Error:")
                 st.write("There was an error with the API request.")
+
+
 
 st.markdown('''
         <style>
