@@ -46,15 +46,31 @@ class DataPreparation:
             'WEEKDAY_APPR_PROCESS_START', 'HOUR_APPR_PROCESS_START']
 
         self.yes_no_features = ['FLAG_OWN_CAR',
-                                'FLAG_OWN_REALTY', 'EMERGENCYSTATE_MODE']
+                                'FLAG_OWN_REALTY', 'EMERGENCYSTATE_MODE', 'CODE_GENDER']
 
         self.binary_features = ['FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE', 'FLAG_PHONE', 'FLAG_EMAIL', 'REG_REGION_NOT_LIVE_REGION',
                                 'REG_REGION_NOT_WORK_REGION', 'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY', 'REG_CITY_NOT_WORK_CITY', 'LIVE_CITY_NOT_WORK_CITY']
 
     def drop_features(self, df):
-        df = df.drop(self.unused_features, axis=1)
-        df = df.drop(self.binary_features, axis=1)
-        return df
+        # df = df.drop(self.unused_features, axis=1)
+        # df = df.drop(self.binary_features, axis=1)
+        FEATURES = ['CODE_GENDER', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY', 'CNT_CHILDREN',
+       'AMT_INCOME_TOTAL', 'AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE',
+       'NAME_TYPE_SUITE', 'NAME_INCOME_TYPE', 'NAME_EDUCATION_TYPE',
+       'NAME_FAMILY_STATUS', 'NAME_HOUSING_TYPE', 'REGION_POPULATION_RELATIVE',
+       'DAYS_BIRTH', 'DAYS_EMPLOYED', 'DAYS_REGISTRATION', 'DAYS_ID_PUBLISH',
+       'OWN_CAR_AGE', 'OCCUPATION_TYPE', 'CNT_FAM_MEMBERS',
+       'REGION_RATING_CLIENT', 'REGION_RATING_CLIENT_W_CITY',
+       'WEEKDAY_APPR_PROCESS_START', 'HOUR_APPR_PROCESS_START',
+       'ORGANIZATION_TYPE', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3',
+       'EMERGENCYSTATE_MODE', 'OBS_30_CNT_SOCIAL_CIRCLE',
+       'DEF_30_CNT_SOCIAL_CIRCLE', 'OBS_60_CNT_SOCIAL_CIRCLE',
+       'DEF_60_CNT_SOCIAL_CIRCLE', 'DAYS_LAST_PHONE_CHANGE',
+       'AMT_REQ_CREDIT_BUREAU_HOUR', 'AMT_REQ_CREDIT_BUREAU_DAY',
+       'AMT_REQ_CREDIT_BUREAU_WEEK', 'AMT_REQ_CREDIT_BUREAU_MON',
+       'AMT_REQ_CREDIT_BUREAU_QRT', 'AMT_REQ_CREDIT_BUREAU_YEAR']
+        new_df = df[FEATURES]
+        return new_df
 
     def map_features(self, df):
         mapping_YN = {'N': 0, 'Y': 1, 'No': 0, 'Yes': 1}
@@ -72,7 +88,10 @@ class DataPreparation:
         return df
 
     def one_hot_encoding(self, df):
-        encoder = joblib.load('/app/Model/onehotencoder.joblib')
+        try:
+            encoder = joblib.load('/app/Model/onehotencoder.joblib')
+        except Exception as e:
+            encoder = joblib.load('Model/onehotencoder.joblib')
 
         # Create a copy of the DataFrame to work with
         encoded_df = df.copy()
@@ -148,7 +167,10 @@ class DataPreparation:
         return df
 
     def scale_numerical_features(self, df):
-        scaler = joblib.load('/app/Model/standardscaler.joblib')
+        try:
+            scaler = joblib.load('/app/Model/standardscaler.joblib')
+        except Exception as e:
+            scaler = joblib.load('Model/standardscaler.joblib')
         # Create a copy of the DataFrame to work with
         scaled_df = df.copy()
 
@@ -190,6 +212,7 @@ class DataPreparation:
 
     def cyclic_encoding_hour(self, df):
         # Convert the hour (in 24h format) to a number between 0 and 1, and multiply it by 2*pi to convert it to radians
+        df['HOUR_APPR_PROCESS_START'] = pd.Series(df['HOUR_APPR_PROCESS_START'], dtype=int)
         df['HOUR_APPR_PROCESS_START_rad'] = df['HOUR_APPR_PROCESS_START'] / \
             24. * 2 * np.pi
 
@@ -216,8 +239,8 @@ class DataPreparation:
 
         self.input_df.replace('NaN', np.nan, inplace=True)
         self.input_df = self.drop_features(self.input_df)
-        self.input_df = self.regression_filler_1(self.input_df)
-        self.input_df = self.regression_filler_2(self.input_df)
+        #self.input_df = self.regression_filler_1(self.input_df)
+        #self.input_df = self.regression_filler_2(self.input_df)
         self.input_df = self.map_features(self.input_df)
         self.input_df = self.one_hot_encoding(self.input_df)
         self.input_df = self.scale_numerical_features(self.input_df)
@@ -228,33 +251,51 @@ class DataPreparation:
 
     @staticmethod
     def remove_unnecessary_cols(df):
-        # Features classification
-        unused_features = ['NAME_CONTRACT_TYPE', 'SK_ID_CURR', 'FONDKAPREMONT_MODE', 'HOUSETYPE_MODE',
-                                'WALLSMATERIAL_MODE', 'FLAG_DOCUMENT_2', 'FLAG_DOCUMENT_3', 'FLAG_DOCUMENT_4',
-                                'FLAG_DOCUMENT_5', 'FLAG_DOCUMENT_6', 'FLAG_DOCUMENT_7', 'FLAG_DOCUMENT_8',
-                                'FLAG_DOCUMENT_9', 'FLAG_DOCUMENT_10', 'FLAG_DOCUMENT_11', 'FLAG_DOCUMENT_12',
-                                'FLAG_DOCUMENT_13', 'FLAG_DOCUMENT_14', 'FLAG_DOCUMENT_15', 'FLAG_DOCUMENT_16',
-                                'FLAG_DOCUMENT_17', 'FLAG_DOCUMENT_18', 'FLAG_DOCUMENT_19', 'FLAG_DOCUMENT_20',
-                                'FLAG_DOCUMENT_21',
-                                'APARTMENTS_AVG', 'BASEMENTAREA_AVG', 'YEARS_BEGINEXPLUATATION_AVG', 'YEARS_BUILD_AVG',
-                                'COMMONAREA_AVG', 'ELEVATORS_AVG', 'ENTRANCES_AVG', 'FLOORSMAX_AVG', 'FLOORSMIN_AVG',
-                                'LANDAREA_AVG', 'LIVINGAPARTMENTS_AVG', 'LIVINGAREA_AVG', 'NONLIVINGAPARTMENTS_AVG',
-                                'NONLIVINGAREA_AVG', 'APARTMENTS_MODE', 'BASEMENTAREA_MODE', 'YEARS_BEGINEXPLUATATION_MODE',
-                                'YEARS_BUILD_MODE', 'COMMONAREA_MODE', 'ELEVATORS_MODE', 'ENTRANCES_MODE',
-                                'FLOORSMAX_MODE', 'FLOORSMIN_MODE', 'LANDAREA_MODE', 'LIVINGAPARTMENTS_MODE',
-                                'LIVINGAREA_MODE', 'NONLIVINGAPARTMENTS_MODE', 'NONLIVINGAREA_MODE', 'APARTMENTS_MEDI',
-                                'BASEMENTAREA_MEDI', 'YEARS_BEGINEXPLUATATION_MEDI', 'YEARS_BUILD_MEDI', 'COMMONAREA_MEDI',
-                                'ELEVATORS_MEDI', 'ENTRANCES_MEDI', 'FLOORSMAX_MEDI', 'FLOORSMIN_MEDI', 'LANDAREA_MEDI',
-                                'LIVINGAPARTMENTS_MEDI', 'LIVINGAREA_MEDI', 'NONLIVINGAPARTMENTS_MEDI', 'NONLIVINGAREA_MEDI',
-                                'TOTALAREA_MODE']
+        # # Features classification
+        # unused_features = ['NAME_CONTRACT_TYPE', 'SK_ID_CURR', 'FONDKAPREMONT_MODE', 'HOUSETYPE_MODE',
+        #                         'WALLSMATERIAL_MODE', 'FLAG_DOCUMENT_2', 'FLAG_DOCUMENT_3', 'FLAG_DOCUMENT_4',
+        #                         'FLAG_DOCUMENT_5', 'FLAG_DOCUMENT_6', 'FLAG_DOCUMENT_7', 'FLAG_DOCUMENT_8',
+        #                         'FLAG_DOCUMENT_9', 'FLAG_DOCUMENT_10', 'FLAG_DOCUMENT_11', 'FLAG_DOCUMENT_12',
+        #                         'FLAG_DOCUMENT_13', 'FLAG_DOCUMENT_14', 'FLAG_DOCUMENT_15', 'FLAG_DOCUMENT_16',
+        #                         'FLAG_DOCUMENT_17', 'FLAG_DOCUMENT_18', 'FLAG_DOCUMENT_19', 'FLAG_DOCUMENT_20',
+        #                         'FLAG_DOCUMENT_21',
+        #                         'APARTMENTS_AVG', 'BASEMENTAREA_AVG', 'YEARS_BEGINEXPLUATATION_AVG', 'YEARS_BUILD_AVG',
+        #                         'COMMONAREA_AVG', 'ELEVATORS_AVG', 'ENTRANCES_AVG', 'FLOORSMAX_AVG', 'FLOORSMIN_AVG',
+        #                         'LANDAREA_AVG', 'LIVINGAPARTMENTS_AVG', 'LIVINGAREA_AVG', 'NONLIVINGAPARTMENTS_AVG',
+        #                         'NONLIVINGAREA_AVG', 'APARTMENTS_MODE', 'BASEMENTAREA_MODE', 'YEARS_BEGINEXPLUATATION_MODE',
+        #                         'YEARS_BUILD_MODE', 'COMMONAREA_MODE', 'ELEVATORS_MODE', 'ENTRANCES_MODE',
+        #                         'FLOORSMAX_MODE', 'FLOORSMIN_MODE', 'LANDAREA_MODE', 'LIVINGAPARTMENTS_MODE',
+        #                         'LIVINGAREA_MODE', 'NONLIVINGAPARTMENTS_MODE', 'NONLIVINGAREA_MODE', 'APARTMENTS_MEDI',
+        #                         'BASEMENTAREA_MEDI', 'YEARS_BEGINEXPLUATATION_MEDI', 'YEARS_BUILD_MEDI', 'COMMONAREA_MEDI',
+        #                         'ELEVATORS_MEDI', 'ENTRANCES_MEDI', 'FLOORSMAX_MEDI', 'FLOORSMIN_MEDI', 'LANDAREA_MEDI',
+        #                         'LIVINGAPARTMENTS_MEDI', 'LIVINGAREA_MEDI', 'NONLIVINGAPARTMENTS_MEDI', 'NONLIVINGAREA_MEDI',
+        #                         'TOTALAREA_MODE']
 
-        binary_features = ['FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE', 'FLAG_PHONE', 'FLAG_EMAIL', 'REG_REGION_NOT_LIVE_REGION',
-                                'REG_REGION_NOT_WORK_REGION', 'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY', 'REG_CITY_NOT_WORK_CITY', 'LIVE_CITY_NOT_WORK_CITY']
+        # binary_features = ['FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE', 'FLAG_PHONE', 'FLAG_EMAIL', 'REG_REGION_NOT_LIVE_REGION',
+        #                         'REG_REGION_NOT_WORK_REGION', 'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY', 'REG_CITY_NOT_WORK_CITY', 'LIVE_CITY_NOT_WORK_CITY']
 
+        FEATURES = ['CODE_GENDER', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY', 'CNT_CHILDREN',
+       'AMT_INCOME_TOTAL', 'AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE',
+       'NAME_TYPE_SUITE', 'NAME_INCOME_TYPE', 'NAME_EDUCATION_TYPE',
+       'NAME_FAMILY_STATUS', 'NAME_HOUSING_TYPE', 'REGION_POPULATION_RELATIVE',
+       'DAYS_BIRTH', 'DAYS_EMPLOYED', 'DAYS_REGISTRATION', 'DAYS_ID_PUBLISH',
+       'OWN_CAR_AGE', 'OCCUPATION_TYPE', 'CNT_FAM_MEMBERS',
+       'REGION_RATING_CLIENT', 'REGION_RATING_CLIENT_W_CITY',
+       'WEEKDAY_APPR_PROCESS_START', 'HOUR_APPR_PROCESS_START',
+       'ORGANIZATION_TYPE', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3',
+       'EMERGENCYSTATE_MODE', 'OBS_30_CNT_SOCIAL_CIRCLE',
+       'DEF_30_CNT_SOCIAL_CIRCLE', 'OBS_60_CNT_SOCIAL_CIRCLE',
+       'DEF_60_CNT_SOCIAL_CIRCLE', 'DAYS_LAST_PHONE_CHANGE',
+       'AMT_REQ_CREDIT_BUREAU_HOUR', 'AMT_REQ_CREDIT_BUREAU_DAY',
+       'AMT_REQ_CREDIT_BUREAU_WEEK', 'AMT_REQ_CREDIT_BUREAU_MON',
+       'AMT_REQ_CREDIT_BUREAU_QRT', 'AMT_REQ_CREDIT_BUREAU_YEAR']
+        
         if 'TARGET' in df.columns:
             df.drop('TARGET', axis=1, inplace=True)
             
-        df = df.drop(unused_features, axis=1)
-        df = df.drop(binary_features, axis=1)
+        # df = df.drop(unused_features, axis=1)
+        # df = df.drop(binary_features, axis=1)
 
-        return df
+        new_df = df[FEATURES]
+
+        return new_df
