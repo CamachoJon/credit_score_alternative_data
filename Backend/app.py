@@ -34,6 +34,10 @@ shap.initjs()
 # define the app and the base URL
 app = FastAPI()
 
+class names(BaseModel):
+    key1: str
+    key2: str
+
 @app.get('/user_data', response_model=List[Dict])
 async def get_user_data():
     db = Database()
@@ -119,13 +123,13 @@ async def root():
 
 @app.post("/predict")
 async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
-    db = Database()
+    #db = Database()
     og_df = pd.DataFrame(features)
     og_df = DataPreparation.remove_unnecessary_cols(og_df)
     df = prepare_data(features)
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
-    write_to_db(og_df, db)
+    #write_to_db(og_df, db)
     final_df = og_df.to_dict(orient='records')
     json_data = json.dumps(final_df)
 
@@ -176,35 +180,57 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 #     buffer.seek(0)
 #     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
 
-# demo TODO: Remove it and update the correct one
 @app.get("/generate_report")
-async def generate_report(name: str = '', lastname: str = ''):
+async def generate_report(name: str = '', lastname: str = '', imp_f: str = '', cat: str = ''):
 
     # Let's generate a random instance with 10 features
-    instance = np.random.randn(10)
-    instance_df = pd.DataFrame([instance], columns=[f'feature_{i}' for i in range(10)])
+    # instance = np.random.randn(10)
+    # instance_df = pd.DataFrame([instance], columns=[f'feature_{i}' for i in range(10)])
 
     # We're generating random SHAP values and an expected value
-    shap_values = [np.random.randn(instance_df.shape[1])]
-    expected_value = np.random.randn(1)
+    # shap_values = [np.random.randn(instance_df.shape[1])]
+    # expected_value = np.random.randn(1)
 
     # Generate the decision plot and save it to a file
-    fig, ax = plt.subplots()
-    shap.decision_plot(expected_value, shap_values[0], instance_df, link='logit', show=False)
-    plt.savefig("shap_plot.png")
-
+    # fig, ax = plt.subplots()
+    # shap.decision_plot(expected_value, shap_values[0], instance_df, link='logit', show=False)
+    # plt.savefig("shap_plot.png")
+    imp_f_list = imp_f.split(",")
     # Create a PDF
     doc = SimpleDocTemplate("report.pdf", pagesize=letter)
     story = []
+
     styles = getSampleStyleSheet()
 
+    title_style = styles['Title']
+    heading_style = styles['Heading2']
+    paragraph_style = styles['Normal']
+
+    title = Paragraph("Prediction Analysis using SHAP tool", title_style)
+    h1 = Paragraph(f"User: {name} {lastname}", heading_style)
+    h1_1 = Paragraph(f"Category: {cat}", heading_style)
+    h2 = Paragraph(" - Analysis 1 - How the model classifies data points based on input features?", heading_style)
+    p1 = Paragraph("The features are ordered based on the influence of the feature on the model. \
+                   The center line represents the base line (0.5). \
+                   The values from 0-0.5 represents tha category 0(non-defaulter) and \
+                   the values from 0.5-1 represents tha category 1(defaulter)", paragraph_style)
+    h3 = Paragraph("Features which influenced the most for this prediction: ", heading_style)
+    
     # Add the SHAP plot
-    story.append(Image("shap_plot.png", width=500, height=400))
+    story.append(title)
+    story.append(h1)
+    story.append(h1_1)
+    story.append(h2)
+    story.append(p1)
+    story.append(Image("shap_decision_plot.png", width=400, height=500))
     story.append(Spacer(1, 12))
+    story.append(h3)
+    for i in range(len(imp_f_list)):
+        story.append(Paragraph(f"* {imp_f_list[i]}", paragraph_style))
     
     # Add some text
-    text = "<b>SHAP Decision Plot</b><br/>This plot provides a detailed view of the feature contributions to the model prediction for a single instance."
-    story.append(Paragraph(text, styles["Normal"]))
+    # text = "<b>SHAP Decision Plot</b><br/>This plot provides a detailed view of the feature contributions to the model prediction for a single instance."
+    # story.append(Paragraph(text, styles["Normal"]))
     story.append(Spacer(1, 12))
 
     # Generate the PDF
@@ -212,6 +238,7 @@ async def generate_report(name: str = '', lastname: str = ''):
 
     # Return the PDF as a response
     return FileResponse("report.pdf", media_type="application/pdf", filename="report.pdf")
+
 
 @app.get('/get_unique_vals')
 async def get_unique_vals():
@@ -252,6 +279,7 @@ def write_to_db(df: pd.DataFrame, db: Database) -> None:
         user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         db.write(user_info_query)
 
+
 def generate_fake_data(user_id):
     fake = Faker()
     fake_name = fake.name()
@@ -282,7 +310,7 @@ class NpEncoder(json.JSONEncoder):
 
 @app.get("/shap")
 def get_shap_values():
-    shap_values, expected_value, x_test_processed = shap_service.create_explainer()
+    shap_values, expected_value, x_test_processed, class_0, class_1 = shap_service.create_explainer()
     sv = shap_values.tolist()
     ev = expected_value.tolist()
     xpr = x_test_processed.to_dict(orient='records')
@@ -291,7 +319,9 @@ def get_shap_values():
     jd = {
         "shap_val": sv,
         "exp_val": ev,
-        "x_test": pr_df
+        "x_test": pr_df,
+        "class_0": class_0,
+        "class_1": class_1
     }
     json_data = json.dumps(jd)
     return json_data
