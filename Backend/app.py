@@ -26,6 +26,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
+import shap_service
 import shap
 shap.initjs()
 
@@ -125,9 +126,10 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
     write_to_db(og_df, db)
-    response = og_df.to_dict()
+    final_df = og_df.to_dict(orient='records')
+    json_data = json.dumps(final_df)
 
-    return response
+    return json_data
 
 # @app.post("/generate_decision_plot")
 # async def generate_decision_plot(request: Request):
@@ -175,8 +177,8 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 #     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
 
 # demo TODO: Remove it and update the correct one
-@app.get("/generate_decision_plot")
-async def generate_decision_plot():
+@app.get("/generate_report")
+async def generate_report(name: str = '', lastname: str = ''):
 
     # Let's generate a random instance with 10 features
     instance = np.random.randn(10)
@@ -211,6 +213,13 @@ async def generate_decision_plot():
     # Return the PDF as a response
     return FileResponse("report.pdf", media_type="application/pdf", filename="report.pdf")
 
+@app.get('/get_unique_vals')
+async def get_unique_vals():
+    unique_vals = joblib.load('Model/credit-cat-cols-uniq-vals.joblib')
+    json_data = json.dumps(unique_vals, cls=NpEncoder)
+    return json_data
+
+
 def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
     df = pd.DataFrame(features)
     data_preparation = DataPreparation(df)
@@ -219,7 +228,10 @@ def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFr
 
 
 def make_prediction(df: pd.DataFrame) -> List:
-    model = joblib.load('/app/Model/xgb_model.joblib')
+    try:
+        model = joblib.load('/app/Model/xgb_model.joblib')
+    except:
+        model = joblib.load('Model/xgb_model.joblib')
     predictions = model.predict(df).tolist()
     return predictions
 
@@ -229,24 +241,23 @@ def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
     df['DATE'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return df
 
-
 def write_to_db(df: pd.DataFrame, db: Database) -> None:
     dict_list = df.to_dict(orient='records')
     for record in dict_list:
-        fake_data = generate_fake_data()
-        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         user_analysis_query = Database.format_sql_command('USERS', record)
-        db.write(user_analysis_query)
+        user_id = db.write(user_analysis_query)
+        fake_data = generate_fake_data(user_id)
+        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         db.write(user_info_query)
 
-
-def generate_fake_data():
+def generate_fake_data(user_id):
     fake = Faker()
     fake_name = fake.name()
     fake_lastname = fake.last_name()
     fake_birthdate = fake.date_of_birth().strftime("%Y-%m-%d")
 
     data_dict = {
+        'ID' : user_id,
         'NAME': fake_name,
         'LASTNAME': fake_lastname,
         'BIRTHDATE': fake_birthdate
@@ -266,6 +277,22 @@ class NpEncoder(json.JSONEncoder):
             return bool(obj)
         return super(NpEncoder, self).default(obj)
 
+
+@app.get("/shap")
+def get_shap_values():
+    shap_values, expected_value, x_test_processed = shap_service.create_explainer()
+    sv = shap_values.tolist()
+    ev = expected_value.tolist()
+    xpr = x_test_processed.to_dict(orient='records')
+    pr_df = json.dumps(xpr)
+    
+    jd = {
+        "shap_val": sv,
+        "exp_val": ev,
+        "x_test": pr_df
+    }
+    json_data = json.dumps(jd)
+    return json_data
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
