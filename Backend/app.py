@@ -26,6 +26,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
+import shap_service
 import shap
 shap.initjs()
 
@@ -226,7 +227,10 @@ def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFr
 
 
 def make_prediction(df: pd.DataFrame) -> List:
-    model = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
+    try:
+        model = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
+    except:
+        model = joblib.load('Model/credit-cat-cols-uniq-vals.joblib')
     predictions = model.predict(df).tolist()
     return predictions
 
@@ -273,6 +277,22 @@ class NpEncoder(json.JSONEncoder):
             return bool(obj)
         return super(NpEncoder, self).default(obj)
 
+
+@app.get("/shap")
+def get_shap_values():
+    shap_values, expected_value, x_test_processed = shap_service.create_explainer()
+    sv = shap_values.tolist()
+    ev = expected_value.tolist()
+    xpr = x_test_processed.to_dict(orient='records')
+    pr_df = json.dumps(xpr)
+    
+    jd = {
+        "shap_val": sv,
+        "exp_val": ev,
+        "x_test": pr_df
+    }
+    json_data = json.dumps(jd)
+    return json_data
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
