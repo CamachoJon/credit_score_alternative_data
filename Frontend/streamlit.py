@@ -263,8 +263,7 @@ with st.container():
 
             else:
                 st.warning("Both First Name & Last Name of the Customer are required to search data.")
-            
-            
+                  
     if selected == "Prediction":
         # To get unique values of categorical columns
         uv = requests.get(UNIQ_VAL_URL)
