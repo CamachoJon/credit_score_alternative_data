@@ -11,6 +11,8 @@ __pycache__/
 
 # Files extension
 *.csv
+*.png
+*.pdf
 
 
 # Distribution / packaging
