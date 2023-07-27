@@ -119,13 +119,13 @@ async def root():
 
 @app.post("/predict")
 async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
-    #db = Database()
+    db = Database()
     og_df = pd.DataFrame(features)
     og_df = DataPreparation.remove_unnecessary_cols(og_df)
     df = prepare_data(features)
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
-    #write_to_db(og_df, db)
+    write_to_db(og_df, db)
     final_df = og_df.to_dict(orient='records')
     json_data = json.dumps(final_df)
 
@@ -177,8 +177,8 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 #     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
 
 # demo TODO: Remove it and update the correct one
-@app.get("/generate_decision_plot")
-async def generate_decision_plot():
+@app.get("/generate_report")
+async def generate_report(name: str = '', lastname: str = ''):
 
     # Let's generate a random instance with 10 features
     instance = np.random.randn(10)
@@ -242,24 +242,23 @@ def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
     df['DATE'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return df
 
-
 def write_to_db(df: pd.DataFrame, db: Database) -> None:
     dict_list = df.to_dict(orient='records')
     for record in dict_list:
-        fake_data = generate_fake_data()
-        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         user_analysis_query = Database.format_sql_command('USERS', record)
-        db.write(user_analysis_query)
-        # db.write(user_info_query)
+        user_id = db.write(user_analysis_query)
+        fake_data = generate_fake_data(user_id)
+        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
+        db.write(user_info_query)
 
-
-def generate_fake_data():
+def generate_fake_data(user_id):
     fake = Faker()
     fake_name = fake.name()
     fake_lastname = fake.last_name()
     fake_birthdate = fake.date_of_birth().strftime("%Y-%m-%d")
 
     data_dict = {
+        'ID' : user_id,
         'NAME': fake_name,
         'LASTNAME': fake_lastname,
         'BIRTHDATE': fake_birthdate
