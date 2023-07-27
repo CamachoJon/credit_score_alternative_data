@@ -177,8 +177,8 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 #     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
 
 # demo TODO: Remove it and update the correct one
-@app.get("/generate_decision_plot")
-async def generate_decision_plot():
+@app.get("/generate_report")
+async def generate_report(name: str = '', lastname: str = ''):
 
     # Let's generate a random instance with 10 features
     instance = np.random.randn(10)

@@ -1,6 +1,6 @@
 import requests
 
-BASE_API_URL = "http://localhost:8000/"
+BASE_API_URL = "http://backend:8000/"
 
 def download_pdf_from_api(st):
     try:
