@@ -211,6 +211,13 @@ async def generate_decision_plot():
     # Return the PDF as a response
     return FileResponse("report.pdf", media_type="application/pdf", filename="report.pdf")
 
+@app.get('/get_unique_vals')
+async def get_unique_vals():
+    unique_vals = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
+    json_data = json.dumps(unique_vals, cls=NpEncoder)
+    return json_data
+
+
 def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
     df = pd.DataFrame(features)
     data_preparation = DataPreparation(df)
@@ -219,7 +226,7 @@ def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFr
 
 
 def make_prediction(df: pd.DataFrame) -> List:
-    model = joblib.load('/app/Model/xgb_model.joblib')
+    model = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
     predictions = model.predict(df).tolist()
     return predictions
 
@@ -237,7 +244,7 @@ def write_to_db(df: pd.DataFrame, db: Database) -> None:
         user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         user_analysis_query = Database.format_sql_command('USERS', record)
         db.write(user_analysis_query)
-        db.write(user_info_query)
+        # db.write(user_info_query)
 
 
 def generate_fake_data():
