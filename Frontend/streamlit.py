@@ -11,6 +11,7 @@ import time
 import random
 
 from services import user as user_service
+from services import report as report_service
 import json
 import requests
 import sys
@@ -237,6 +238,8 @@ with st.container():
         with colr2:
             lastname = st.text_input("Customer's Last Name:")
 
+        
+
         if st.button("Get User Information"):
             if firstname and lastname:
                 user_info_str = user_service.get_user_data_by_name(firstname, lastname)
@@ -254,11 +257,13 @@ with st.container():
                 
                 owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
                 st.write(f"Owns Car : {owns_car}")
-                
-                if(user_info):
-                    st.button("Download PDF Report 📑")
+
+                response = requests.get("http://localhost:8000/" + "generate_decision_plot")
+                st.download_button(label="Download PDF Report 📑", data=response.content, file_name="user_report.pdf", mime="application/pdf")
+
             else:
                 st.warning("Both First Name & Last Name of the Customer are required to search data.")
+            
             
     if selected == "Prediction":
         # To get unique values of categorical columns
@@ -369,8 +374,6 @@ with st.container():
             else:
                 st.subheader("Error:")
                 st.write("There was an error with the API request.")
-
-
 
 st.markdown('''
         <style>
