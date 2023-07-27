@@ -98,11 +98,14 @@ async def get_user_info(name: str = '', lastname: str = ''):
     db = Database()
     results = db.read(query)
 
+    results.replace([np.inf, -np.inf], np.nan, inplace=True)
+    results.fillna(value="NaN", inplace=True)  # use a string to represent NaN
+
     # convert results to JSON
     results_json = results.to_json(orient="records")
 
     # return past predictions as JSON
-    return results_json
+    return jsonable_encoder(results_json)
 
 # define the index
 @app.get("/")
