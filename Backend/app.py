@@ -25,6 +25,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import letter
 
 
 # define the app and the base URL
@@ -126,27 +127,65 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 
     return response
 
+# @app.post("/generate_decision_plot")
+# async def generate_decision_plot(request: Request):
+#     data = await request.json()
+#     instance = data['instance']  # The instance you want to explain
+#     instance_df = pd.DataFrame([instance])
+
+#     # Load your model
+#     model = joblib.load('/app/Model/xgb_model.joblib')
+
+#     # Initialize the explainer
+#     explainer = shap.TreeExplainer(model)
+
+#     # Calculate SHAP values
+#     try:
+#         shap_values = explainer.shap_values(instance_df)
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+#     # Generate the decision plot and save it to a file
+#     fig, ax = plt.subplots()
+#     shap.decision_plot(explainer.expected_value, shap_values[0], instance_df, show=False)
+#     plt.savefig("shap_plot.png")
+
+#     # Create a PDF
+#     buffer = io.BytesIO()
+#     doc = SimpleDocTemplate(buffer, pagesize=letter)
+#     story = []
+#     styles = getSampleStyleSheet()
+
+#     # Add the SHAP plot
+#     story.append(Image("shap_plot.png", width=500, height=400))
+#     story.append(Spacer(1, 12))
+    
+#     # Add some text
+#     text = "<b>SHAP Decision Plot</b><br/>This plot provides a detailed view of the feature contributions to the model prediction for a single instance."
+#     story.append(Paragraph(text, styles["Normal"]))
+#     story.append(Spacer(1, 12))
+
+#     # Generate the PDF
+#     doc.build(story)
+
+#     # Return the PDF as a response
+#     buffer.seek(0)
+#     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
+
+# demo TODO: Remove it and update the correct one
 @app.post("/generate_decision_plot")
 async def generate_decision_plot(request: Request):
     data = await request.json()
     instance = data['instance']  # The instance you want to explain
     instance_df = pd.DataFrame([instance])
 
-    # Load your model
-    model = joblib.load('/app/Model/xgb_model.joblib')
-
-    # Initialize the explainer
-    explainer = shap.TreeExplainer(model)
-
-    # Calculate SHAP values
-    try:
-        shap_values = explainer.shap_values(instance_df)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Instead of a real model prediction, we're generating random SHAP values and an expected value
+    shap_values = [np.random.randn(instance_df.shape[1])]
+    expected_value = np.random.randn(1)
 
     # Generate the decision plot and save it to a file
     fig, ax = plt.subplots()
-    shap.decision_plot(explainer.expected_value, shap_values[0], instance_df, show=False)
+    shap.decision_plot(expected_value, shap_values[0], instance_df, show=False)
     plt.savefig("shap_plot.png")
 
     # Create a PDF
@@ -170,7 +209,6 @@ async def generate_decision_plot(request: Request):
     # Return the PDF as a response
     buffer.seek(0)
     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
-
 
 def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
     df = pd.DataFrame(features)
