@@ -8,8 +8,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
+import matplotlib.pyplot as plt
 import random
-
+import shap
 from services import user as user_service
 from services import report as report_service
 import json
@@ -17,6 +18,10 @@ import requests
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from Frontend import UNIQ_VAL_URL, PREDICT_URL, CAT_COLS, NUM_COLS, CYC_COLS, BOOL_COLS, FEATURES, SHAP_URL
+from Backend import shap_service
+
 # from app import UNIQ_VAL_URL, PREDICT_URL
 # from Frontend import UNIQ_VAL_URL, FEATURE_URL, PREDICT_URL, PAST_PREDICT_URL
 
@@ -27,6 +32,61 @@ with st.sidebar:
         menu_title="Credit Scoring",
         options=["Home", "Model Analysis", "User Report", "Prediction"]
     )
+
+def shap_plot(df):
+    st.title(f"Prediction Analysis with SHAP")
+    response_shap = requests.get(SHAP_URL)
+
+    if response_shap.status_code == 200:
+        data = json.loads(response_shap.json())
+
+        expected_value = data["exp_val"]
+        shap_values = np.array(data["shap_val"])
+        x_test_json = data["x_test"]
+        x_test_load = json.loads(x_test_json)
+        x_test_processed = pd.DataFrame(x_test_load)
+        
+        y_pred = df["TARGET"]
+
+        def legend_labels(idx, features, y_pred):
+            return [f'User {i} (pred: {y_pred[i]:.0f})' for i in idx]
+
+        st.subheader("Analysis 1 - How the model classifies data points based on input features?")
+        ## decision plot
+        show_idx = list(range(len(df)))
+
+        # fig, ax = plt.subplots()
+
+        d_plot = shap.decision_plot(expected_value[0], shap_values, x_test_processed, #feature_order=list(sorted_feature_importance_df.index)[::-1],
+                link='logit', legend_labels=legend_labels(show_idx, x_test_processed, y_pred), legend_location='lower right')
+        plt.savefig('shap_images/shap_decision_plot.png')
+        shap_service.st_shap(d_plot)
+    
+    
+        ## Force plot
+        st.subheader("Analysis 2 - How individual features influence the predictions?")
+
+        st.write("Red Bars: The red bars in the force plot represent features that push the prediction towards a higher value or a positive outcome.")
+
+        st.write("Blue Bars: Conversely, the blue bars in the force plot represent features that push the prediction towards a lower value or a negative outcome.")
+        
+        #fig, ax = plt.subplots(len(shap_values),1)
+        for i in range(len(shap_values)):
+            if y_pred[i]==1:
+                pred = ":red[Defaulter]"
+            else:
+                pred = ":green[Non-Defaulter]"
+            st.subheader(f'For user {i}: {pred}')
+
+            # shap.force_plot(expected_value[0], shap_values[i], pd.DataFrame(round(x_test_processed.iloc[i,:], 2)).T, link='logit', matplotlib=True)
+            # plt.savefig(f'shap_images/shap_force_plot_{i}.png', bbox_inches='tight')
+            # plt.close()
+            
+            f_plot = shap.force_plot(expected_value[0], shap_values[i], pd.DataFrame(round(x_test_processed.iloc[i,:], 2)).T, link='logit')
+            
+            shap_service.st_shap(f_plot)
+
+
 
 with st.container():
     if selected == "Home":
@@ -271,21 +331,23 @@ with st.container():
         unique_vals = json.loads(uv.json())
 
         # Get all features
-        fs = requests.get(FEATURE_URL)
-        features_set = fs.json()
+        # fs = requests.get(FEATURE_URL)
+        # features_set = fs.json()
 
         # combine all categorical, numerical, etc in one array
-        combined_features = []
-        for f_set in features_set.values():
-            combined_features.extend(f_set)
+        # combined_features = []
+        # for f_set in features_set.values():
+        #     combined_features.extend(f_set)
 
-        cat_f = features_set["cat"]
-        num_f = features_set["num"]
-        cyc_f = features_set["cyc"]
-        bool_f = features_set["bool"]
+        # cat_f = features_set["cat"]
+        # num_f = features_set["num"]
+        # cyc_f = features_set["cyc"]
+        # bool_f = features_set["bool"]
 
         #  ******************** Prediction with csv or parquet ***********************
+        st.title('Credit risk classifier: Predicting defaulter')
         st.subheader("Upload CSV or Parquet file with input data:")
+        st.write("Use the classifier for a bunch of users. Try by uploading csv or a parquet file.")
         uploaded_file = st.file_uploader("", type=["csv", "parquet"])
 
         # check if file was uploaded
@@ -297,11 +359,11 @@ with st.container():
                 else:
                     input_data = pd.read_csv(uploaded_file)
                 
-                input_data = input_data[combined_features]
-                input_data[cat_f] = input_data[cat_f].fillna("na")
-                input_data[num_f] = input_data[num_f].fillna(0)
-                input_data[cyc_f] = input_data[cyc_f].fillna(0)
-                input_data[bool_f] = input_data[bool_f].fillna(0)
+                input_data = input_data[FEATURES]
+                input_data[CAT_COLS] = input_data[CAT_COLS].fillna("na")
+                input_data[NUM_COLS] = input_data[NUM_COLS].fillna(0)
+                input_data[CYC_COLS] = input_data[CYC_COLS].fillna(0)
+                input_data[BOOL_COLS] = input_data[BOOL_COLS].fillna(0)
                 # st.write(input_data)
 
                 # make prediction using the API
@@ -312,6 +374,8 @@ with st.container():
                         data = json.loads(response.json())
                         df = pd.DataFrame(data)
                         st.write(df)
+
+                        shap_plot(df)
                     else:
                         st.subheader("Error:")
                         st.write("There was an error with the API request.")
@@ -321,7 +385,8 @@ with st.container():
                 st.write(e)
 
         # ***************** Single sample prediction - with form ***********************
-        st.header("Single sample prediction")
+        st.subheader("Single sample prediction")
+        st.write("Enter the details for single user to find out the credit risk")
 
         single_sample = dict()
         with st.form(key='form'):
@@ -330,12 +395,12 @@ with st.container():
             #ord_cols = features_set[2]  # ordinal cols
 
             for i, col in enumerate(unique_vals):
-                col_name = cat_f[i]
+                col_name = CAT_COLS[i]
                 single_sample[col_name] = st.selectbox(col_name, unique_vals[col_name])
 
 
-            for i in range(len(num_f)):
-                col_name = num_f[i]
+            for i in range(len(NUM_COLS)):
+                col_name = NUM_COLS[i]
                 val = str(st.number_input(col_name, value=0, step=1))
                 single_sample[col_name] = int(val)
 
@@ -344,13 +409,13 @@ with st.container():
                 "WEEKDAY_APPR_PROCESS_START": [1, 7]
             }
 
-            for i in range(len(cyc_f)):
-                col_name = cyc_f[i]
+            for i in range(len(CYC_COLS)):
+                col_name = CYC_COLS[i]
                 val = str(st.slider(col_name, min_value=slider_range[col_name][0], max_value=slider_range[col_name][1]))
                 single_sample[col_name] = int(val)
 
-            for i in range(len(bool_f)):
-                col_name = bool_f[i]
+            for i in range(len(BOOL_COLS)):
+                col_name = BOOL_COLS[i]
                 val = str(st.number_input(col_name, value=0, step=1, max_value=1))
                 single_sample[col_name] = int(val)
 
@@ -361,15 +426,16 @@ with st.container():
         df = pd.DataFrame(ss_list)
 
         if submit_button:
-            input_data = df[combined_features]
-            input_data[cat_f] = input_data[cat_f].fillna("na")
-            input_data[num_f] = input_data[num_f].fillna(0)
+            input_data = df[FEATURES]
+            input_data[CAT_COLS] = input_data[CAT_COLS].fillna("na")
+            input_data[NUM_COLS] = input_data[NUM_COLS].fillna(0)
             response = requests.post(PREDICT_URL, json=input_data.to_dict(orient='records'))
 
             if response.status_code == 200:
                 data = json.loads(response.json())
                 df = pd.DataFrame(data)
                 st.write(df)
+                shap_plot(df)
             
             else:
                 st.subheader("Error:")

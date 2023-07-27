@@ -232,6 +232,7 @@ def make_prediction(df: pd.DataFrame) -> List:
         model = joblib.load('/app/Model/xgb_model.joblib')
     except:
         model = joblib.load('Model/xgb_model.joblib')
+        joblib.dump(df, "Model/x_test_proc_shap.joblib")
     predictions = model.predict(df).tolist()
     return predictions
 
