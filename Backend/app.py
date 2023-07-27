@@ -26,6 +26,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
+import shap
+shap.initjs()
 
 
 # define the app and the base URL
@@ -173,12 +175,12 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 #     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
 
 # demo TODO: Remove it and update the correct one
-@app.post("/generate_decision_plot")
+@app.get("/generate_decision_plot")
 async def generate_decision_plot():
 
     # Let's generate a random instance with 10 features
     instance = np.random.randn(10)
-    instance_df = pd.DataFrame([instance])
+    instance_df = pd.DataFrame([instance], columns=[f'feature_{i}' for i in range(10)])
 
     # We're generating random SHAP values and an expected value
     shap_values = [np.random.randn(instance_df.shape[1])]
@@ -186,7 +188,7 @@ async def generate_decision_plot():
 
     # Generate the decision plot and save it to a file
     fig, ax = plt.subplots()
-    shap.decision_plot(expected_value, shap_values[0], instance_df, show=False)
+    shap.decision_plot(expected_value, shap_values[0], instance_df, link='logit', show=False)
     plt.savefig("shap_plot.png")
 
     # Create a PDF

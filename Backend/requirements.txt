@@ -14,3 +14,4 @@ xgboost
 faker
 reportlab
 shap
+ipython
