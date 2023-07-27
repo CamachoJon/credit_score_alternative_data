@@ -43,10 +43,19 @@ def shap_plot(df):
         expected_value = data["exp_val"]
         shap_values = np.array(data["shap_val"])
         x_test_json = data["x_test"]
+        class_0 = data["class_0"]
+        class_1 = data["class_1"]
         x_test_load = json.loads(x_test_json)
         x_test_processed = pd.DataFrame(x_test_load)
         
         y_pred = df["TARGET"]
+
+        if y_pred[0] == 0:
+            imp_f = class_0
+            cat = "Non-Defaulter"
+        else:
+            imp_f = class_1
+            cat = "Defaulter"
 
         def legend_labels(idx, features, y_pred):
             return [f'User {i} (pred: {y_pred[i]:.0f})' for i in idx]
@@ -59,7 +68,7 @@ def shap_plot(df):
 
         d_plot = shap.decision_plot(expected_value[0], shap_values, x_test_processed, #feature_order=list(sorted_feature_importance_df.index)[::-1],
                 link='logit', legend_labels=legend_labels(show_idx, x_test_processed, y_pred), legend_location='lower right')
-        plt.savefig('shap_images/shap_decision_plot.png')
+        plt.savefig('/app/Backend/shap_decision_plot.png')
         shap_service.st_shap(d_plot)
     
     
@@ -86,6 +95,7 @@ def shap_plot(df):
             
             shap_service.st_shap(f_plot)
 
+    return imp_f, cat
 
 
 with st.container():
@@ -303,25 +313,54 @@ with st.container():
 
         if st.button("Get User Information"):
             if firstname and lastname:
-                user_info_str = user_service.get_user_data_by_name(firstname, lastname)
-                user_info = json.loads(user_info_str)
+                # user_info_str = user_service.get_user_data_by_name(firstname, lastname)
+                # user_info = json.loads(user_info_str)
 
-                # st.write(user_info_str)
+                st.write(firstname+" "+lastname)
+
+                df = pd.read_csv("../../data/test5.csv")
+                user_info = df.head(1)
+
+                user_info = user_info[FEATURES]
+                user_info[CAT_COLS] = user_info[CAT_COLS].fillna("na")
+                user_info[NUM_COLS] = user_info[NUM_COLS].fillna(0)
+                user_info[CYC_COLS] = user_info[CYC_COLS].fillna(0)
+                user_info[BOOL_COLS] = user_info[BOOL_COLS].fillna(0)
                 
-                gender = 'Male' if user_info[0]['CODE_GENDER'] == 'M' else 'Female'
-                st.write(f"Gender : {gender}")
-                st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
-                st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
-                st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
-                st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
-                st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
+                # gender = 'Male' if user_info[0]['CODE_GENDER'] == 'M' else 'Female'
+                # st.write(f"Gender : {gender}")
+                # st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
+                # st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
+                # st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
+                # st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
+                # st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
                 
-                owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
-                st.write(f"Owns Car : {owns_car}")
+                # owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
+                # st.write(f"Owns Car : {owns_car}")
 
-                response = requests.get(f"http://backend:8000/generate_report?name={firstname}&lastname={lastname}")
-                st.download_button(label="Download PDF Report 📑", data=response.content, file_name=f"{firstname}_{lastname}_report.pdf", mime="application/pdf")
+                # if st.button("Get Report"):
+                response = requests.post(PREDICT_URL, json=user_info.to_dict(orient='records'))
 
+                if response.status_code == 200:
+                    data = json.loads(response.json())
+                    df = pd.DataFrame(data)
+                    st.write(df)
+                    imp_f, cat = shap_plot(df)
+                    list_string = ','.join(map(str, imp_f))
+                    
+                    # names  = pd.DataFrame([{"name":firstname, "lastname":lastname}])
+                    response = requests.get(f"http://localhost:8000/generate_report?name={firstname}&lastname={lastname}&imp_f={list_string}&cat={cat}")
+                    st.download_button(label="Download PDF Report 📑", data=response.content, file_name=f"{firstname}_{lastname}_report.pdf", mime="application/pdf")
+
+                    # response = requests.post("http://localhost:8000/generate_report", json=names.to_dict(orient='records'))
+                    # if response.status_code == 200:
+                    #     data = json.loads(response.json())
+                        
+                else:
+                    st.subheader("Error:")
+                    st.write("There was an error with the API request.")
+                    
+                    
             else:
                 st.warning("Both First Name & Last Name of the Customer are required to search data.")
                   
