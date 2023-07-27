@@ -174,12 +174,13 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
 
 # demo TODO: Remove it and update the correct one
 @app.post("/generate_decision_plot")
-async def generate_decision_plot(request: Request):
-    data = await request.json()
-    instance = data['instance']  # The instance you want to explain
+async def generate_decision_plot():
+
+    # Let's generate a random instance with 10 features
+    instance = np.random.randn(10)
     instance_df = pd.DataFrame([instance])
 
-    # Instead of a real model prediction, we're generating random SHAP values and an expected value
+    # We're generating random SHAP values and an expected value
     shap_values = [np.random.randn(instance_df.shape[1])]
     expected_value = np.random.randn(1)
 
@@ -189,8 +190,7 @@ async def generate_decision_plot(request: Request):
     plt.savefig("shap_plot.png")
 
     # Create a PDF
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    doc = SimpleDocTemplate("report.pdf", pagesize=letter)
     story = []
     styles = getSampleStyleSheet()
 
@@ -207,8 +207,7 @@ async def generate_decision_plot(request: Request):
     doc.build(story)
 
     # Return the PDF as a response
-    buffer.seek(0)
-    return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
+    return FileResponse("report.pdf", media_type="application/pdf", filename="report.pdf")
 
 def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFrame:
     df = pd.DataFrame(features)
