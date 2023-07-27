@@ -118,7 +118,7 @@ async def root():
 
 
 @app.post("/predict")
-def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
+async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
     db = Database()
     og_df = pd.DataFrame(features)
     og_df = DataPreparation.remove_unnecessary_cols(og_df)
