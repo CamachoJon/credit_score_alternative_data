@@ -32,9 +32,30 @@ class Database:
         # Connect to the database
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute(command)
+
+        # Split the command into separate commands at the first semicolon
+        commands = command.split(";", 1)
+        cursor.execute(commands[0].strip())
         cursor.commit()
-        conn.close()
+
+        # Check if there is a second command to be executed (for fetching the ID)
+        if len(commands) > 1 and commands[1].strip():
+            # Execute the SELECT statement to get the ID of the last inserted row
+            cursor.execute(commands[1].strip())
+
+            # Fetch the ID
+            result_tuple = cursor.fetchone()
+
+            if result_tuple:
+                # The ID is the first (and only) element of the tuple
+                new_id = int(result_tuple[0])
+                conn.close()
+                return new_id
+            else:
+                conn.close()
+                return None
+        else:
+            conn.close()
 
     def format_sql_command(table: str, data: dict) -> str:
         columns = ', '.join(data.keys())
@@ -43,8 +64,13 @@ class Database:
         values = ', '.join('NULL' if value is None or value == '' or value == 'NaN' else f"'{value}'" if isinstance(
             value, str) else str(value) for value in data.values())
 
-        # Create the parameterized query
-        query = f'INSERT INTO {table} ({columns}) VALUES ({values});'
+        if table == 'USERS':
+            # Create the parameterized query
+            query = f'INSERT INTO {table} ({columns}) VALUES ({values}); SELECT SCOPE_IDENTITY() AS LastID;'
+        else:
+            # Create the parameterized query
+            query = f'INSERT INTO {table} ({columns}) VALUES ({values});'
+            
         return query
 
 

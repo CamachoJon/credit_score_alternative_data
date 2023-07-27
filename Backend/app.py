@@ -228,9 +228,9 @@ def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFr
 
 def make_prediction(df: pd.DataFrame) -> List:
     try:
-        model = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
+        model = joblib.load('/app/Model/xgb_model.joblib')
     except:
-        model = joblib.load('Model/credit-cat-cols-uniq-vals.joblib')
+        model = joblib.load('Model/xgb_model.joblib')
     predictions = model.predict(df).tolist()
     return predictions
 
@@ -240,24 +240,23 @@ def add_target_and_date(df: pd.DataFrame, predictions: List) -> pd.DataFrame:
     df['DATE'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return df
 
-
 def write_to_db(df: pd.DataFrame, db: Database) -> None:
     dict_list = df.to_dict(orient='records')
     for record in dict_list:
-        fake_data = generate_fake_data()
-        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
         user_analysis_query = Database.format_sql_command('USERS', record)
-        db.write(user_analysis_query)
-        # db.write(user_info_query)
+        user_id = db.write(user_analysis_query)
+        fake_data = generate_fake_data(user_id)
+        user_info_query = Database.format_sql_command('USERS_INFO', fake_data)
+        db.write(user_info_query)
 
-
-def generate_fake_data():
+def generate_fake_data(user_id):
     fake = Faker()
     fake_name = fake.name()
     fake_lastname = fake.last_name()
     fake_birthdate = fake.date_of_birth().strftime("%Y-%m-%d")
 
     data_dict = {
+        'ID' : user_id,
         'NAME': fake_name,
         'LASTNAME': fake_lastname,
         'BIRTHDATE': fake_birthdate
