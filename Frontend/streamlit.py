@@ -19,8 +19,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Frontend import UNIQ_VAL_URL, PREDICT_URL, CAT_COLS, NUM_COLS, CYC_COLS, BOOL_COLS, FEATURES, SHAP_URL
-from Backend import shap_service
+from app import UNIQ_VAL_URL, PREDICT_URL, CAT_COLS, NUM_COLS, CYC_COLS, BOOL_COLS, FEATURES, SHAP_URL
+from app.services import shap_service
 
 # from app import UNIQ_VAL_URL, PREDICT_URL
 # from Frontend import UNIQ_VAL_URL, FEATURE_URL, PREDICT_URL, PAST_PREDICT_URL
@@ -59,7 +59,7 @@ def shap_plot(df):
 
         d_plot = shap.decision_plot(expected_value[0], shap_values, x_test_processed, #feature_order=list(sorted_feature_importance_df.index)[::-1],
                 link='logit', legend_labels=legend_labels(show_idx, x_test_processed, y_pred), legend_location='lower right')
-        plt.savefig('shap_images/shap_decision_plot.png')
+        plt.savefig('shap_decision_plot.png')
         shap_service.st_shap(d_plot)
     
     

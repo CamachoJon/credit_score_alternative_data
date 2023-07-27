@@ -20,6 +20,7 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y --no-install-recommends m
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
+COPY shap_service.py shap_service.py
 
 RUN pip install -r requirements.txt
 

@@ -230,6 +230,7 @@ def prepare_data(features: List[Dict[str, Union[str, int, float]]]) -> pd.DataFr
 def make_prediction(df: pd.DataFrame) -> List:
     try:
         model = joblib.load('/app/Model/xgb_model.joblib')
+        joblib.dump(df, "app/Model/x_test_proc_shap.joblib")
     except:
         model = joblib.load('Model/xgb_model.joblib')
         joblib.dump(df, "Model/x_test_proc_shap.joblib")

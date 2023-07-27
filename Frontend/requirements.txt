@@ -6,3 +6,6 @@ joblib
 streamlit_option_menu
 plotly
 scipy
+matplotlib
+shap
+ipython
