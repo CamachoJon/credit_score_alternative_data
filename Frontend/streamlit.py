@@ -23,7 +23,7 @@ st.set_page_config(layout="wide")
 with st.sidebar:
     selected = option_menu(
         menu_title="Credit Scoring",
-        options=["Home", "Model Analysis", "Prediction"]
+        options=["Home", "Model Analysis", "User Report", "Prediction"]
     )
 
 with st.container():
@@ -200,12 +200,54 @@ with st.container():
 
                 # Show the plot using Streamlit
                 chart_placeholder.plotly_chart(fig, use_container_width=True)
-                time.sleep(3)
-                
 
-    if selected == "Reports":
-        st.title(f"You have selected: {selected}")
 
+                # now = datetime.now()
+                # twelve_hours_ago = now - timedelta(hours=12)
+                # df[df['DATE'] >= twelve_hours_ago]
+
+
+                # fig = px.line(df, x='DATE', y='TARGET', title='Counts of 1s and 0s in the Last 12 Hours',
+                #   labels={'TARGET': 'Count', 'DATE': 'Time'})
+
+                # # Set the x-axis interval to 1 hour
+                # fig.update_xaxes(
+                #     dtick='HOUR',
+                #     tickformat='%H:%M:%S',  # Display hours, minutes, and seconds on the x-axis
+                #     ticklabelmode='period',
+                #     ticklabelposition='inside'
+                # )
+
+                # if not df["DATE"].empty:
+                #     # Plot the line chart using Plotly
+                #     st.plotly_chart(fig, use_container_width=True)
+                # else:
+                #     st.warning("No data available in the last 12 hours.")
+
+
+                time.sleep(3)      
+
+                  
+
+    if selected == "User Report":
+        st.title(f"User Report")
+        colr1, colr2 = st.columns(2)
+
+        with colr1:
+            firstname = st.text_input("Customer's First Name:")
+
+        with colr2:
+            lastname = st.text_input("Customer's Last Name:")
+
+        if st.button("Get User Information"):
+            if firstname and lastname:
+                user_info = user_service.get_user_data_by_name(firstname, lastname)
+                st.write(user_info)
+                if(user_info):
+                    st.button("Download PDF Report 📑")
+            else:
+                st.warning("Both First Name & Last Name of the Customer are required to search data.")
+            
     if selected == "Prediction":
         # To get unique values of categorical columns
         uv = requests.get(UNIQ_VAL_URL)
