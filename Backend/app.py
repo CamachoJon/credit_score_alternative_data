@@ -126,9 +126,10 @@ async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
     write_to_db(og_df, db)
-    response = og_df.to_dict()
+    final_df = og_df.to_dict(orient='records')
+    json_data = json.dumps(final_df)
 
-    return response
+    return json_data
 
 # @app.post("/generate_decision_plot")
 # async def generate_decision_plot(request: Request):
@@ -214,7 +215,7 @@ async def generate_decision_plot():
 
 @app.get('/get_unique_vals')
 async def get_unique_vals():
-    unique_vals = joblib.load('/app/Model/credit-cat-cols-uniq-vals.joblib')
+    unique_vals = joblib.load('Model/credit-cat-cols-uniq-vals.joblib')
     json_data = json.dumps(unique_vals, cls=NpEncoder)
     return json_data
 
