@@ -118,14 +118,14 @@ async def root():
 
 
 @app.post("/predict")
-def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
-    db = Database()
+async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
+    #db = Database()
     og_df = pd.DataFrame(features)
     og_df = DataPreparation.remove_unnecessary_cols(og_df)
     df = prepare_data(features)
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
-    write_to_db(og_df, db)
+    #write_to_db(og_df, db)
     final_df = og_df.to_dict(orient='records')
     json_data = json.dumps(final_df)
 
@@ -232,6 +232,7 @@ def make_prediction(df: pd.DataFrame) -> List:
         model = joblib.load('/app/Model/xgb_model.joblib')
     except:
         model = joblib.load('Model/xgb_model.joblib')
+        joblib.dump(df, "Model/x_test_proc_shap.joblib")
     predictions = model.predict(df).tolist()
     return predictions
 
