@@ -1,7 +1,7 @@
 import datetime
 from faker import Faker
 import json
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, Form
 from pydantic import BaseModel
 import pandas as pd
 import joblib
@@ -23,11 +23,15 @@ import io
 from fastapi.responses import FileResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as platypusImage
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
+from io import BytesIO
+import requests
 import shap_service
 import shap
+from PIL import Image as PILImage
+import tempfile
 shap.initjs()
 
 
@@ -123,79 +127,32 @@ async def root():
 
 @app.post("/predict")
 async def predict(features: List[Dict[str, Union[str, int, float]]]) -> None:
-    #db = Database()
+    db = Database()
     og_df = pd.DataFrame(features)
     og_df = DataPreparation.remove_unnecessary_cols(og_df)
     df = prepare_data(features)
     predictions = make_prediction(df)
     og_df = add_target_and_date(og_df, predictions)
-    #write_to_db(og_df, db)
+    write_to_db(og_df, db)
     final_df = og_df.to_dict(orient='records')
     json_data = json.dumps(final_df)
 
     return json_data
 
-# @app.post("/generate_decision_plot")
-# async def generate_decision_plot(request: Request):
-#     data = await request.json()
-#     instance = data['instance']  # The instance you want to explain
-#     instance_df = pd.DataFrame([instance])
-
-#     # Load your model
-#     model = joblib.load('/app/Model/xgb_model.joblib')
-
-#     # Initialize the explainer
-#     explainer = shap.TreeExplainer(model)
-
-#     # Calculate SHAP values
-#     try:
-#         shap_values = explainer.shap_values(instance_df)
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
-
-#     # Generate the decision plot and save it to a file
-#     fig, ax = plt.subplots()
-#     shap.decision_plot(explainer.expected_value, shap_values[0], instance_df, show=False)
-#     plt.savefig("shap_plot.png")
-
-#     # Create a PDF
-#     buffer = io.BytesIO()
-#     doc = SimpleDocTemplate(buffer, pagesize=letter)
-#     story = []
-#     styles = getSampleStyleSheet()
-
-#     # Add the SHAP plot
-#     story.append(Image("shap_plot.png", width=500, height=400))
-#     story.append(Spacer(1, 12))
-    
-#     # Add some text
-#     text = "<b>SHAP Decision Plot</b><br/>This plot provides a detailed view of the feature contributions to the model prediction for a single instance."
-#     story.append(Paragraph(text, styles["Normal"]))
-#     story.append(Spacer(1, 12))
-
-#     # Generate the PDF
-#     doc.build(story)
-
-#     # Return the PDF as a response
-#     buffer.seek(0)
-#     return FileResponse(buffer, media_type="application/pdf", filename="report.pdf")
-
-@app.get("/generate_report")
-async def generate_report(name: str = '', lastname: str = '', imp_f: str = '', cat: str = ''):
-
-    # Let's generate a random instance with 10 features
-    # instance = np.random.randn(10)
-    # instance_df = pd.DataFrame([instance], columns=[f'feature_{i}' for i in range(10)])
-
-    # We're generating random SHAP values and an expected value
-    # shap_values = [np.random.randn(instance_df.shape[1])]
-    # expected_value = np.random.randn(1)
-
-    # Generate the decision plot and save it to a file
-    # fig, ax = plt.subplots()
-    # shap.decision_plot(expected_value, shap_values[0], instance_df, link='logit', show=False)
-    # plt.savefig("shap_plot.png")
+@app.post("/generate_report")
+async def generate_report(name: str = Form(...), lastname: str = Form(...), imp_f: str = Form(...), cat: str = Form(...), image: UploadFile = File(...)):
     imp_f_list = imp_f.split(",")
+
+    # Read the uploaded image file
+    image_content = await image.read()
+    print(f'Personal data {name}, {lastname}, {cat}')
+    # Convert image_content into an Image object
+    pil_image = PILImage.open(BytesIO(image_content))
+    
+    # Save PIL Image to temporary file
+    temp_file_name = "temp.png"
+    pil_image.save(temp_file_name)
+
     # Create a PDF
     doc = SimpleDocTemplate("report.pdf", pagesize=letter)
     story = []
@@ -222,23 +179,22 @@ async def generate_report(name: str = '', lastname: str = '', imp_f: str = '', c
     story.append(h1_1)
     story.append(h2)
     story.append(p1)
-    story.append(Image("shap_decision_plot.png", width=400, height=500))
+    story.append(platypusImage(temp_file_name, width=200, height=250)) # this line now uses the temporary file
     story.append(Spacer(1, 12))
     story.append(h3)
     for i in range(len(imp_f_list)):
         story.append(Paragraph(f"* {imp_f_list[i]}", paragraph_style))
-    
-    # Add some text
-    # text = "<b>SHAP Decision Plot</b><br/>This plot provides a detailed view of the feature contributions to the model prediction for a single instance."
-    # story.append(Paragraph(text, styles["Normal"]))
+
     story.append(Spacer(1, 12))
 
     # Generate the PDF
     doc.build(story)
+    
+    # Delete the temporary file
+    os.remove(temp_file_name)
 
     # Return the PDF as a response
     return FileResponse("report.pdf", media_type="application/pdf", filename="report.pdf")
-
 
 @app.get('/get_unique_vals')
 async def get_unique_vals():
@@ -309,7 +265,7 @@ class NpEncoder(json.JSONEncoder):
 
 
 @app.get("/shap")
-def get_shap_values():
+async def get_shap_values():
     shap_values, expected_value, x_test_processed, class_0, class_1 = shap_service.create_explainer()
     sv = shap_values.tolist()
     ev = expected_value.tolist()

@@ -15,3 +15,6 @@ faker
 reportlab
 shap
 ipython
+requests
+python-multipart
+Pillow

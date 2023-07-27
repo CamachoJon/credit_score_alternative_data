@@ -21,7 +21,12 @@ def create_explainer():
         warnings.simplefilter("ignore")
         shap_values = explainer.shap_values(x_test)
 
-    return shap_values, expected_value, x_test
+    shap_df = pd.DataFrame(shap_values, columns = x_test.columns)
+    s1 = shap_df.iloc[0]
+    class_1 = list((s1[s1>0]).sort_values(ascending=False)[:10].index)
+    class_0 = list((s1[s1<0]).sort_values(ascending=True)[:10].index)
+
+    return shap_values, expected_value, x_test, class_0, class_1
 
 
 

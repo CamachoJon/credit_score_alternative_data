@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app import UNIQ_VAL_URL, PREDICT_URL, CAT_COLS, NUM_COLS, CYC_COLS, BOOL_COLS, FEATURES, SHAP_URL
+from app import UNIQ_VAL_URL, PREDICT_URL, CAT_COLS, NUM_COLS, CYC_COLS, BOOL_COLS, FEATURES, SHAP_URL, OG_ORDER_FEATURES
 from app.services import shap_service
 
 # from app import UNIQ_VAL_URL, PREDICT_URL
@@ -313,33 +313,32 @@ with st.container():
 
         if st.button("Get User Information"):
             if firstname and lastname:
-                # user_info_str = user_service.get_user_data_by_name(firstname, lastname)
-                # user_info = json.loads(user_info_str)
-
+                user_info_str = user_service.get_user_data_by_name(firstname, lastname)
+                user_info = json.loads(user_info_str)
                 st.write(firstname+" "+lastname)
 
-                df = pd.read_csv("../../data/test5.csv")
-                user_info = df.head(1)
-
-                user_info = user_info[FEATURES]
-                user_info[CAT_COLS] = user_info[CAT_COLS].fillna("na")
-                user_info[NUM_COLS] = user_info[NUM_COLS].fillna(0)
-                user_info[CYC_COLS] = user_info[CYC_COLS].fillna(0)
-                user_info[BOOL_COLS] = user_info[BOOL_COLS].fillna(0)
+                df = pd.DataFrame(user_info)
+                user_info_df = df.head(1)
+                # user_info_df = user_info_df[FEATURES]
+                # user_info_df[CAT_COLS] = user_info_df[CAT_COLS].fillna("NaN")
+                # user_info_df[NUM_COLS] = user_info_df[NUM_COLS].fillna(0)
+                # user_info_df[CYC_COLS] = user_info_df[CYC_COLS].fillna(0)
+                # user_info_df[BOOL_COLS] = user_info_df[BOOL_COLS].fillna(0)
                 
-                # gender = 'Male' if user_info[0]['CODE_GENDER'] == 'M' else 'Female'
-                # st.write(f"Gender : {gender}")
-                # st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
-                # st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
-                # st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
-                # st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
-                # st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
+                gender = 'Male' if user_info_df['CODE_GENDER'].iloc[0] == 'M' else 'Female'
+                st.write(f"Gender : {gender}")
+                st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
+                st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
+                st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
+                st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
+                st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
                 
-                # owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
-                # st.write(f"Owns Car : {owns_car}")
+                owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
+                st.write(f"Owns Car : {owns_car}")
 
+                user_info_df = user_info_df[OG_ORDER_FEATURES]
                 # if st.button("Get Report"):
-                response = requests.post(PREDICT_URL, json=user_info.to_dict(orient='records'))
+                response = requests.post(PREDICT_URL, json=user_info_df.to_dict(orient='records'))
 
                 if response.status_code == 200:
                     data = json.loads(response.json())
@@ -347,15 +346,27 @@ with st.container():
                     st.write(df)
                     imp_f, cat = shap_plot(df)
                     list_string = ','.join(map(str, imp_f))
-                    
-                    # names  = pd.DataFrame([{"name":firstname, "lastname":lastname}])
-                    response = requests.get(f"http://localhost:8000/generate_report?name={firstname}&lastname={lastname}&imp_f={list_string}&cat={cat}")
-                    st.download_button(label="Download PDF Report 📑", data=response.content, file_name=f"{firstname}_{lastname}_report.pdf", mime="application/pdf")
 
-                    # response = requests.post("http://localhost:8000/generate_report", json=names.to_dict(orient='records'))
-                    # if response.status_code == 200:
-                    #     data = json.loads(response.json())
-                        
+                    # Assuming the SHAP plot image is saved under 'shap_decision_plot.png'
+                    image_file_path = "shap_decision_plot.png"
+                    
+                    # Open the file in binary mode
+                    image_file = open(image_file_path, "rb")
+
+                    # Send a post request with the file and data
+                    response = requests.post("http://backend:8000/generate_report", 
+                                             files={"image": image_file}, 
+                                             data={"name": firstname, "lastname": lastname, "imp_f": list_string, "cat": cat})
+
+                    # Close the file
+                    image_file.close()
+                    
+                    # Download button
+                    if response.status_code == 200:
+                        st.download_button(label="Download PDF Report 📑", data=response.content, file_name=f"{firstname}_{lastname}_report.pdf", mime="application/pdf")
+                    else:
+                        st.subheader("Error:")
+                        st.write("There was an error with the API request.")
                 else:
                     st.subheader("Error:")
                     st.write("There was an error with the API request.")
@@ -363,6 +374,7 @@ with st.container():
                     
             else:
                 st.warning("Both First Name & Last Name of the Customer are required to search data.")
+
                   
     if selected == "Prediction":
         # To get unique values of categorical columns

@@ -95,10 +95,16 @@ class DataPreparation:
 
         # Create a copy of the DataFrame to work with
         encoded_df = df.copy()
-
+        encoded_df.to_csv('ohencoded.csv')
         # Fill missing values in categorical features
-        encoded_df[self.categorical_features] = encoded_df[self.categorical_features].apply(
-            lambda x: x.fillna(x.mode()[0]), axis=0)
+
+        if len(encoded_df) > 1:            
+            encoded_df[self.categorical_features] = encoded_df[self.categorical_features].apply(
+                lambda x: x.fillna(x.mode()[0]), axis=0)
+        else:
+            encoded_df[self.categorical_features] = encoded_df[self.categorical_features].apply(
+                lambda x: x.fillna('No_Ans', axis=0))
+            
         
         # Transform the data
         encoded = encoder.transform(encoded_df[self.categorical_features])
@@ -297,5 +303,6 @@ class DataPreparation:
         # df = df.drop(binary_features, axis=1)
 
         new_df = df[FEATURES]
+        print('All G')
 
         return new_df
