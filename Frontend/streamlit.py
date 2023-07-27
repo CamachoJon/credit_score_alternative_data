@@ -17,7 +17,7 @@ import requests
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from app import UNIQ_VAL_URL, PREDICT_URL
+# from app import UNIQ_VAL_URL, PREDICT_URL
 # from Frontend import UNIQ_VAL_URL, FEATURE_URL, PREDICT_URL, PAST_PREDICT_URL
 
 st.set_page_config(layout="wide")
@@ -259,8 +259,8 @@ with st.container():
                 owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
                 st.write(f"Owns Car : {owns_car}")
 
-                response = requests.get("http://backend:8000/" + "generate_decision_plot")
-                st.download_button(label="Download PDF Report 📑", data=response.content, file_name="user_report.pdf", mime="application/pdf")
+                response = requests.get(f"http://backend:8000/generate_report?name={firstname}&lastname={lastname}")
+                st.download_button(label="Download PDF Report 📑", data=response.content, file_name=f"{firstname}_{lastname}_report.pdf", mime="application/pdf")
 
             else:
                 st.warning("Both First Name & Last Name of the Customer are required to search data.")
