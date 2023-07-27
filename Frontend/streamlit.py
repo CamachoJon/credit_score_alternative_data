@@ -227,8 +227,6 @@ with st.container():
 
                 time.sleep(3)      
 
-                  
-
     if selected == "User Report":
         st.title(f"User Report")
         colr1, colr2 = st.columns(2)
@@ -241,8 +239,22 @@ with st.container():
 
         if st.button("Get User Information"):
             if firstname and lastname:
-                user_info = user_service.get_user_data_by_name(firstname, lastname)
-                st.write(user_info)
+                user_info_str = user_service.get_user_data_by_name(firstname, lastname)
+                user_info = json.loads(user_info_str)
+
+                # st.write(user_info_str)
+                
+                gender = 'Male' if user_info[0]['CODE_GENDER'] == 'M' else 'Female'
+                st.write(f"Gender : {gender}")
+                st.write(f"Marital Status : {user_info[0]['NAME_FAMILY_STATUS']}")
+                st.write(f"Income : {user_info[0]['AMT_INCOME_TOTAL']}")
+                st.write(f"Education : {user_info[0]['NAME_EDUCATION_TYPE']}")
+                st.write(f"Housing : {user_info[0]['NAME_HOUSING_TYPE']}")
+                st.write(f"Occupation : {user_info[0]['OCCUPATION_TYPE']}")
+                
+                owns_car = 'Yes' if user_info[0]['FLAG_OWN_CAR'] == 'Y' else 'No'
+                st.write(f"Owns Car : {owns_car}")
+                
                 if(user_info):
                     st.button("Download PDF Report 📑")
             else:
