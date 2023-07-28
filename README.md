@@ -1,4 +1,4 @@
-# Credit Analysis - TSheild
+# Credit Analysis - TShield
 ![Tsheild logo](https://github.com/CamachoJon/credit_score_alternative_data/assets/42679048/4df4e077-ebeb-4006-b2c5-05fc94fe348e)
 
 ## Project Description 
