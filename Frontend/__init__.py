@@ -1,6 +1,9 @@
-UNIQ_VAL_URL = "http://backend:8000/get_unique_vals/"
-PREDICT_URL = "http://backend:8000/predict/"
-SHAP_URL = "http://backend:8000/shap/"
+# UNIQ_VAL_URL = "http://backend:8000/get_unique_vals/"
+# PREDICT_URL = "http://backend:8000/predict/"
+# SHAP_URL = "http://backend:8000/shap/"
+UNIQ_VAL_URL = "http://backend-service/get_unique_vals/"
+PREDICT_URL = "http://backend-service/predict/"
+SHAP_URL = "http://backend-service/shap/"
 
 NUM_COLS = ['CNT_CHILDREN', 'AMT_INCOME_TOTAL', 'AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE',
             'REGION_POPULATION_RELATIVE', 'DAYS_BIRTH', 'DAYS_EMPLOYED', 'DAYS_REGISTRATION',

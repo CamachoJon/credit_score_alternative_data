@@ -17,7 +17,7 @@ PROCESSED_CLIENTS = '/usr/local/airflow/ProcessedClients'
 LOGS = '/usr/local/airflow/Logger/log.txt'
 
 # define the url of your model service
-model_service_url = 'http://Backend:8000/predict'
+model_service_url = 'http://backend-service/predict'
 
 def check_for_new_data(**context):
 
