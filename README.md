@@ -1,4 +1,6 @@
 # Credit Analysis - TSheild
+![Tsheild logo](https://github.com/CamachoJon/credit_score_alternative_data/assets/42679048/4df4e077-ebeb-4006-b2c5-05fc94fe348e)
+
 ## Project Description 
 Traditional credit risk analysis based on credit history, financial metrics, and personal information has limitations in coverage, timeliness, and inherent biases. It often fails to assess risk accurately for 'thin-file' or 'no-file' customers, lacks up-to-date information, perpetuates biases, overlooks relevant contextual data, and struggles to capture dynamic financial circumstances. In contrast, alternative data from non-traditional sources like digital footprints and social media can offer a more inclusive and comprehensive view of creditworthiness, despite privacy and data quality challenges.​
 
