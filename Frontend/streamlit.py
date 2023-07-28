@@ -34,7 +34,7 @@ with st.sidebar:
     )
 
 def shap_plot(df):
-    st.title(f"Prediction Analysis with SHAP")
+    st.title(f"Credit Risk Analysis")
     response_shap = requests.get(SHAP_URL)
 
     if response_shap.status_code == 200:
@@ -60,7 +60,7 @@ def shap_plot(df):
         def legend_labels(idx, features, y_pred):
             return [f'User {i} (pred: {y_pred[i]:.0f})' for i in idx]
 
-        st.subheader("Analysis 1 - How the model classifies data points based on input features?")
+        st.subheader("Analysis 1 - Understanding our Credit Risk Analysis System")
         ## decision plot
         show_idx = list(range(len(df)))
 
@@ -73,11 +73,11 @@ def shap_plot(df):
     
     
         ## Force plot
-        st.subheader("Analysis 2 - How individual features influence the predictions?")
+        st.subheader("Analysis 2 - Understanding how individual factors affect risk assessments")
 
-        st.write("Red Bars: The red bars in the force plot represent features that push the prediction towards a higher value or a positive outcome.")
+        st.write("Red Bars: The red bars in our analysis represent factors that increase the credit risk (negative outcome).")
 
-        st.write("Blue Bars: Conversely, the blue bars in the force plot represent features that push the prediction towards a lower value or a negative outcome.")
+        st.write("Blue Bars: On the other hand, the blue bars in our analysis represent factors that decrease the credit risk (positive outcome).")
         
         #fig, ax = plt.subplots(len(shap_values),1)
         for i in range(len(shap_values)):
@@ -343,7 +343,6 @@ with st.container():
                 if response.status_code == 200:
                     data = json.loads(response.json())
                     df = pd.DataFrame(data)
-                    st.write(df)
                     imp_f, cat = shap_plot(df)
                     list_string = ','.join(map(str, imp_f))
 
