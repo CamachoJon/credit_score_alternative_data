@@ -29,7 +29,7 @@ st.set_page_config(layout="wide")
 
 with st.sidebar:
     selected = option_menu(
-        menu_title="Credit Scoring",
+        menu_title="TShield Credit Scoring",
         options=["Home", "Model Analysis", "User Report", "Prediction"]
     )
 
