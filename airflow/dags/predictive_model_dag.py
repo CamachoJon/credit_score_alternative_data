@@ -17,10 +17,24 @@ PROCESSED_CLIENTS = '/usr/local/airflow/ProcessedClients'
 LOGS = '/usr/local/airflow/Logger/log.txt'
 
 # define the url of your model service
-model_service_url = 'http://Backend:8000/predict'
+model_service_url = 'http://backend-service/predict'
 
 def check_for_new_data(**context):
+    """
+    Checks for new data files in the WAITING_LIST directory.
 
+    If new files are found, it passes the list of file names to the next task using XCom.
+    If no new files are found, it skips the DAG.
+
+    Args:
+        **context: Airflow context with information about the task execution.
+
+    Raises:
+        AirflowSkipException: Raised when no new files are found, skipping the DAG.
+
+    Returns:
+        None
+    """
     new_files = read_log_file(LOGS)
 
     if new_files:
@@ -31,6 +45,15 @@ def check_for_new_data(**context):
         raise AirflowSkipException
     
 def make_predictions(**context):
+    """
+    Reads new data files, sends the data to the model service for predictions.
+
+    Args:
+        **context: Airflow context with information about the task execution.
+
+    Returns:
+        None
+    """
     # Retrieve new files from the previous task
     new_files = context['task_instance'].xcom_pull(task_ids='check_for_new_data', key='new_files')
 
@@ -47,6 +70,15 @@ def make_predictions(**context):
 
 
 def read_log_file(file_path):
+    """
+    Reads the log file and returns the content as a list of lines.
+
+    Args:
+        file_path (str): The path to the log file.
+
+    Returns:
+        list: A list of lines from the log file.
+    """
     # Read the log file and convert lines into a list
     with open(file_path, 'r') as f:
         lines = f.readlines()

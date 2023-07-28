@@ -353,7 +353,7 @@ with st.container():
                     image_file = open(image_file_path, "rb")
 
                     # Send a post request with the file and data
-                    response = requests.post("http://backend:8000/generate_report", 
+                    response = requests.post("http://backend-service/generate_report", 
                                              files={"image": image_file}, 
                                              data={"name": firstname, "lastname": lastname, "imp_f": list_string, "cat": cat})
 

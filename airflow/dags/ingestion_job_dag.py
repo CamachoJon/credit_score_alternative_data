@@ -13,6 +13,15 @@ PROCESSED_CLIENTS = '/usr/local/airflow/ProcessedClients'
 LOGS = '/usr/local/airflow/Logger/log.txt'
 
 def read_from_folder_a(**context):
+    """
+    Moves the first file from the WAITING_LIST directory to the NEW_CLIENTS directory and saves its name in the log file.
+
+    Args:
+        **context: Airflow context with information about the task execution.
+
+    Returns:
+        None
+    """
     # Check if there are new files in the directory
     source_data_files = os.listdir(WAITING_LIST)
     file = source_data_files[0]
@@ -21,6 +30,15 @@ def read_from_folder_a(**context):
     save_in_log(file)
 
 def save_in_log(file):
+    """
+    Writes the moved file name to the log.txt file.
+
+    Args:
+        file (str): The name of the file to be saved in the log.
+
+    Returns:
+        None
+    """
     print(file)
     # Write the moved file name to log.txt
     with open(LOGS, 'a') as f:
