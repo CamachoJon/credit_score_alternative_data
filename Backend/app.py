@@ -163,15 +163,15 @@ async def generate_report(name: str = Form(...), lastname: str = Form(...), imp_
     heading_style = styles['Heading2']
     paragraph_style = styles['Normal']
 
-    title = Paragraph("Prediction Analysis using SHAP tool", title_style)
+    title = Paragraph("Credit Risk Analysis", title_style)
     h1 = Paragraph(f"User: {name} {lastname}", heading_style)
     h1_1 = Paragraph(f"Category: {cat}", heading_style)
-    h2 = Paragraph(" - Analysis 1 - How the model classifies data points based on input features?", heading_style)
-    p1 = Paragraph("The features are ordered based on the influence of the feature on the model. \
-                   The center line represents the base line (0.5). \
-                   The values from 0-0.5 represents tha category 0(non-defaulter) and \
-                   the values from 0.5-1 represents tha category 1(defaulter)", paragraph_style)
-    h3 = Paragraph("Features which influenced the most for this prediction: ", heading_style)
+    h2 = Paragraph("Understanding our Credit Risk Analysis System", heading_style)
+    p1 = Paragraph("In our system, various factors are ranked based on their significance in determining credit risk. \
+                The middle line represents a neutral point (0.5). \
+                Any value between 0 and 0.5 indicates a lower risk (non-defaulter), and \
+                any value between 0.5 and 1 indicates a higher risk (defaulter).", paragraph_style)
+    h3 = Paragraph("Most Significant Factors in this Risk Assessment: ", heading_style)
     
     # Add the SHAP plot
     story.append(title)
@@ -179,7 +179,7 @@ async def generate_report(name: str = Form(...), lastname: str = Form(...), imp_
     story.append(h1_1)
     story.append(h2)
     story.append(p1)
-    story.append(platypusImage(temp_file_name, width=200, height=250)) # this line now uses the temporary file
+    story.append(platypusImage(temp_file_name, width=300, height=250)) # this line now uses the temporary file
     story.append(Spacer(1, 12))
     story.append(h3)
     for i in range(len(imp_f_list)):
